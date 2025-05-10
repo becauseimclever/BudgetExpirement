@@ -1,6 +1,0 @@
-@BudgetExperiment.Api_HostAddress = http://localhost:5286
-
-GET {{BudgetExperiment.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
