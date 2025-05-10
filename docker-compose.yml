@@ -1,0 +1,22 @@
+services:
+  webapi:
+    build:
+      context: .
+      dockerfile: src/BudgetExperiment.Api/Dockerfile
+      args:
+        DOTNET_VERSION: 10.0-preview
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Database=BudgetExperiment;Username=postgres;Password=postgres
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: BudgetExperiment
+    ports:
+      - "5432:5432"
