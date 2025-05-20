@@ -12,9 +12,6 @@ namespace Budget.Data
 		{
 		}
 
-		//protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-		//	=> optionsBuilder.UseNpgsql("Host=localhost;Database=Budget;Username=postgres;Password=postgres");
-
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			// Configure the one-to-many relationship between Account and Transaction

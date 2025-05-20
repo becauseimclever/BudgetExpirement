@@ -1,4 +1,6 @@
-﻿namespace Budget.Models
+﻿using System.Text.Json.Serialization;
+
+namespace Budget.Models
 {
 	public class Transaction
 	{
@@ -6,6 +8,7 @@
 		public string Description { get; set; } = string.Empty;
 		public decimal Amount { get; set; }
 		public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
-		public required Account Account { get; set; }
+		[JsonIgnore]
+		public Account? Account { get; set; }
 	}
 }

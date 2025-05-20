@@ -27,10 +27,18 @@ namespace Budget.Abstractions.Services
 		IEnumerable<Transaction> GetAllTransactions();
 
 		/// <summary>
-		 /// Retrieves all transactions for a specific account.
-		 /// </summary>
-		 /// <param name="accountId">The ID of the account.</param>
-		 /// <returns>A collection of transactions for the specified account.</returns>
+		/// Retrieves all transactions with pagination.
+		/// </summary>
+		/// <param name="pageNumber">The page number (1-based).</param>
+		/// <param name="pageSize">The number of items per page.</param>
+		/// <returns>A paginated collection of transactions.</returns>
+		IEnumerable<Transaction> GetAllTransactions(int pageNumber, int pageSize);
+
+		/// <summary>
+		/// Retrieves all transactions for a specific account.
+		/// </summary>
+		/// <param name="accountId">The ID of the account.</param>
+		/// <returns>A collection of transactions for the specified account.</returns>
 		IEnumerable<Transaction> GetTransactionsByAccount(Guid accountId);
 
 		/// <summary>

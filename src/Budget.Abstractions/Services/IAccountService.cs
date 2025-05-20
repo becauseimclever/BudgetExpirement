@@ -38,6 +38,13 @@ namespace Budget.Abstractions.Services
 		void AddTransaction(Guid accountId, Transaction transaction);
 
 		/// <summary>
+		 /// Adds multiple transactions to an account in bulk.
+		 /// </summary>
+		 /// <param name="accountId">The ID of the account.</param>
+		 /// <param name="transactions">The list of transactions to add.</param>
+		void AddTransactionsInBulk(Guid accountId, IEnumerable<Transaction> transactions);
+
+		/// <summary>
 		/// Updates a transaction associated with an account.
 		/// </summary>
 		/// <param name="transaction">The transaction to update.</param>

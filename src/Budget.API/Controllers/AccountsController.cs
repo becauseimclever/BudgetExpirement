@@ -187,5 +187,52 @@ namespace Budget.API.Controllers
 				return NotFound();
 			}
 		}
+
+		[HttpPost("{accountId}/transactions/bulk")]
+		[EndpointName("AddTransactionsInBulk")]
+		[EndpointSummary("Adds multiple transactions to a specific account in bulk.")]
+		[ProducesResponseType(StatusCodes.Status201Created)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest)]
+		[ProducesResponseType(StatusCodes.Status404NotFound)]
+		public IActionResult AddTransactionsInBulk([FromRoute] Guid accountId, IFormFile csvFile)
+		{
+			if (csvFile == null || csvFile.Length == 0)
+			{
+				return BadRequest("CSV file is required.");
+			}
+
+			try
+			{
+				using var reader = new StreamReader(csvFile.OpenReadStream());
+				var transactions = new List<Transaction>();
+				string? line;
+				while ((line = reader.ReadLine()) != null)
+				{
+					var values = line.Split(',');
+					if (values.Length != 3)
+					{
+						return BadRequest("Invalid CSV format. Each line must contain description, amount, and date.");
+					}
+
+					transactions.Add(new Transaction
+					{
+						Description = values[0],
+						Amount = decimal.Parse(values[1]),
+						TransactionDate = DateTime.Parse(values[2])
+					});
+				}
+
+				accountService.AddTransactionsInBulk(accountId, transactions);
+				return CreatedAtAction(nameof(GetAccountById), new { id = accountId }, transactions);
+			}
+			catch (FormatException)
+			{
+				return BadRequest("Invalid data format in CSV file.");
+			}
+			catch (KeyNotFoundException)
+			{
+				return NotFound("Account not found.");
+			}
+		}
 	}
 }

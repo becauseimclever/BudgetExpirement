@@ -63,5 +63,23 @@ namespace Budget.API.Controllers
             var transactions = _transactionService.GetTransactionsByAccount(accountId);
             return Ok(transactions);
         }
+
+        /// <summary>
+        /// Retrieves all transactions with pagination.
+        /// </summary>
+        /// <param name="pageNumber">The page number (1-based).</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>A paginated collection of transactions.</returns>
+        [HttpGet]
+        [EndpointName("GetAllTransactions")]
+        [EndpointSummary("Retrieves all transactions with pagination.")]
+        [EndpointDescription("This endpoint fetches all transactions with pagination support. The page number and page size can be specified as query parameters.")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(IEnumerable<Transaction>), StatusCodes.Status200OK)]
+        public IActionResult GetAllTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            var transactions = _transactionService.GetAllTransactions(pageNumber, pageSize);
+            return Ok(transactions);
+        }
     }
 }

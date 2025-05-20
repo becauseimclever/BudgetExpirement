@@ -66,6 +66,22 @@ namespace Budget.Services
 		}
 
 		/// <summary>
+		 /// Retrieves all transactions with pagination.
+		 /// </summary>
+		 /// <param name="pageNumber">The page number (1-based).</param>
+		 /// <param name="pageSize">The number of items per page.</param>
+		 /// <returns>A paginated collection of transactions.</returns>
+		public IEnumerable<Transaction> GetAllTransactions(int pageNumber, int pageSize)
+		{
+			return _context.Transactions
+				.AsNoTracking() // Ensures no tracking of entities
+				.OrderBy(t => t.TransactionDate) // Optional: Order by date or another field
+				.Skip((pageNumber - 1) * pageSize) // Skip the previous pages
+				.Take(pageSize) // Take the current page
+				.ToList();
+		}
+
+		/// <summary>
 		/// Updates an existing transaction.
 		/// </summary>
 		/// <param name="transaction">The transaction with updated details.</param>

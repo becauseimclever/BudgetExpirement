@@ -7,9 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Budget.Abstractions\Budget.Abstractions.csproj" />
+    <ProjectReference Include="..\Budget.Abstractions\Budget.Abstractions.csproj" />
     <ProjectReference Include="..\Budget.Data\Budget.Data.csproj" />
-    <ProjectReference Include="..\Budget.ViewModels\Budget.ViewModels.csproj" />
   </ItemGroup>
 
 </Project>

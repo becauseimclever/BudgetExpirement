@@ -63,6 +63,9 @@ namespace Budget.API
 			app.UseAuthorization();
 			app.MapControllers();
 
+			app.UseBlazorFrameworkFiles(); // Serve Blazor framework files
+			app.UseStaticFiles(); // Serve static files from wwwroot
+			app.MapFallbackToFile("index.html"); // Fallback to index.html for SPA routing
 			app.Run();
 		}
 	}

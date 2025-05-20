@@ -1,0 +1,88 @@
+﻿@page "/transactions"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+@using Budget.Models
+@using System.Globalization
+
+<h3>Transactions</h3>
+
+<div>
+    <label for="pageSize">Page Size:</label>
+    <select id="pageSize" @bind="PageSize">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+    </select>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (_transactions != null && _transactions.Any())
+        {
+            @foreach (var transaction in _transactions)
+            {
+                <tr>
+                    <td>@transaction.TransactionDate.ToLocalTime().ToString("D", CultureInfo.CurrentCulture)</td>
+                    <td>@transaction.Description</td>
+                    <td>@transaction.Amount.ToString("C")</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="3">No transactions found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="pagination">
+    <button @onclick="PreviousPage" disabled="@IsFirstPage">Previous</button>
+    <span>Page @PageNumber</span>
+    <button @onclick="NextPage" disabled="@IsLastPage">Next</button>
+</div>
+
+@code {
+    private List<Transaction> _transactions { get; set; } = new();
+    private int PageNumber { get; set; } = 1;
+    private int PageSize { get; set; } = 10;
+    private bool IsFirstPage => PageNumber == 1;
+    private bool IsLastPage => _transactions.Count < PageSize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransactions();
+    }
+
+    private async Task LoadTransactions()
+    {
+        var response = await Http.GetFromJsonAsync<List<Transaction>>(
+            $"api/transactions?pageNumber={PageNumber}&pageSize={PageSize}");
+        _transactions = response ?? new List<Transaction>();
+    }
+
+    private async Task NextPage()
+    {
+        PageNumber++;
+        await LoadTransactions();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (PageNumber > 1)
+        {
+            PageNumber--;
+            await LoadTransactions();
+        }
+    }
+}

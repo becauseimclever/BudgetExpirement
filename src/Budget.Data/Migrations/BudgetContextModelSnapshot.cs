@@ -43,7 +43,7 @@ namespace Budget.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
                 });
 
             modelBuilder.Entity("Budget.Models.Transaction", b =>
@@ -69,7 +69,7 @@ namespace Budget.Data.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("Budget.Models.Transaction", b =>

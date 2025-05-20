@@ -122,5 +122,24 @@ namespace Budget.Services
 			context.Transactions.Remove(transaction);
 			context.SaveChanges();
 		}
+
+		public void AddTransactionsInBulk(Guid accountId, IEnumerable<Transaction> transactions)
+		{
+			var account = context.Accounts.Find(accountId);
+			if (account == null)
+			{
+				throw new KeyNotFoundException("Account not found.");
+			}
+
+			foreach (var transaction in transactions)
+			{
+				transaction.Id = Guid.NewGuid();
+				transaction.TransactionDate = transaction.TransactionDate.ToUniversalTime();
+				transaction.Account = account;
+			}
+
+			context.Transactions.AddRange(transactions);
+			context.SaveChanges();
+		}
 	}
 }

@@ -1,4 +1,6 @@
-﻿namespace Budget.Models
+﻿using System.Text.Json.Serialization;
+
+namespace Budget.Models
 {
 	public class Account
 	{
@@ -7,6 +9,7 @@
 		public AccountType Type { get; set; } = AccountType.Checking;
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+		[JsonIgnore]
 		public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 	}
 }
