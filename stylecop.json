@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "documentationRules": {
+      "companyName": "BudgetExperiment",
+      "copyrightText": "Copyright (c) BudgetExperiment",
+      "documentInterfaces": true,
+      "documentInternalElements": false,
+      "documentPrivateElements": false,
+      "documentExposedElements": true,
+      "documentPrivateFields": false
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace",
+      "blankLinesBetweenUsingGroups": "allow"
+    },
+    "layoutRules": {
+      "newlineAtEndOfFile": "require"
+    },
+    "namingRules": {
+      "allowCommonHungarianPrefixes": false
+    }
+  }
+}

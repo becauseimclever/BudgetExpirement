@@ -1,0 +1,50 @@
+root = true
+
+[*.cs]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# Treat all warnings as errors via build, but also escalate here
+warn_as_error = true
+
+# C# language version
+dotnet_language_version = latest
+
+# Using directives
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+
+# File layout preferences
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_statements = false
+
+# Nullable & analysis
+build_property.Nullable = enable
+build_property.TreatWarningsAsErrors = true
+
+# Naming - private fields start with _
+dotnet_naming_rule.private_fields_should_have_prefix.symbols = private_fields
+dotnet_naming_rule.private_fields_should_have_prefix.style = underscore_prefix
+dotnet_naming_rule.private_fields_should_have_prefix.severity = warning
+
+# Symbol group for private fields
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+ dotnet_naming_symbols.private_fields.applicable_kinds = field
+
+# Underscore style
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
+dotnet_naming_style.underscore_prefix.required_prefix = _
+
+# Avoid underscores for non-private fields
+# (Other naming rules can be added later as needed)
+
+# SA0001: XML documentation
+# We'll keep docs required only for public APIs (StyleCop handles severity). Add suppressions locally if needed.
+
+[*.{csproj,props,targets}]
+indent_size = 2
