@@ -1,0 +1,111 @@
+namespace BudgetExperiment.Domain;
+
+/// <summary>
+/// Represents a recurring bill with amount and monthly recurrence (for now).
+/// </summary>
+public sealed class BillSchedule
+{
+    private BillSchedule(string name, MoneyValue amount, DateOnly anchor, RecurrenceKind recurrence)
+    {
+        this.Name = name;
+        this.Amount = amount;
+        this.Anchor = anchor;
+        this.Recurrence = recurrence;
+    }
+
+    /// <summary>Recurrence kinds supported.</summary>
+    public enum RecurrenceKind
+    {
+        /// <summary>Monthly recurrence.</summary>
+        Monthly,
+    }
+
+    /// <summary>Gets the bill name.</summary>
+    public string Name
+    {
+        get;
+    }
+
+    /// <summary>Gets the bill amount.</summary>
+    public MoneyValue Amount
+    {
+        get;
+    }
+
+    /// <summary>Gets the anchor (first due date).</summary>
+    public DateOnly Anchor
+    {
+        get;
+    }
+
+    /// <summary>Gets the recurrence kind.</summary>
+    public RecurrenceKind Recurrence
+    {
+        get;
+    }
+
+    /// <summary>Create a monthly bill schedule.</summary>
+    /// <param name="name">Bill name.</param>
+    /// <param name="amount">Bill amount (non-negative).</param>
+    /// <param name="anchor">First due date.</param>
+    /// <returns>Configured <see cref="BillSchedule"/>.</returns>
+    public static BillSchedule CreateMonthly(string name, MoneyValue amount, DateOnly anchor)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainException("Bill name required.");
+        }
+
+        if (amount.Amount < 0m)
+        {
+            throw new DomainException("Bill amount cannot be negative.");
+        }
+
+        return new BillSchedule(name.Trim(), amount, anchor, RecurrenceKind.Monthly);
+    }
+
+    /// <summary>Get due dates within an inclusive range.</summary>
+    /// <param name="rangeStart">Start (inclusive).</param>
+    /// <param name="rangeEnd">End (inclusive).</param>
+    /// <returns>Sequence of due dates.</returns>
+    public IEnumerable<DateOnly> GetOccurrences(DateOnly rangeStart, DateOnly rangeEnd)
+    {
+        if (rangeEnd < rangeStart)
+        {
+            throw new DomainException("Invalid range.");
+        }
+
+        if (rangeEnd < this.Anchor)
+        {
+            yield break;
+        }
+
+        if (this.Recurrence == RecurrenceKind.Monthly)
+        {
+            var current = this.Anchor;
+            var anchorDay = this.Anchor.Day;
+            while (current < rangeStart)
+            {
+                current = AddMonthClamped(current, 1, anchorDay);
+            }
+
+            while (current <= rangeEnd)
+            {
+                if (current >= rangeStart)
+                {
+                    yield return current;
+                }
+
+                current = AddMonthClamped(current, 1, anchorDay);
+            }
+        }
+    }
+
+    private static DateOnly AddMonthClamped(DateOnly date, int months, int anchorDay)
+    {
+        var advanced = date.AddMonths(months);
+        int daysInMonth = DateTime.DaysInMonth(advanced.Year, advanced.Month);
+        int day = Math.Min(anchorDay, daysInMonth);
+        return new DateOnly(advanced.Year, advanced.Month, day);
+    }
+}
