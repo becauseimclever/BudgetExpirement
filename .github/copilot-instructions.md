@@ -203,3 +203,8 @@ Refactor safely behind tests. Each new concept: add a unit test first.
 
 ---
 Keep this file lean—prune when obsolete. Update when architectural decisions shift.
+
+## 31. Shell / Scripting Guidelines
+- PowerShell commands must use fully qualified paths (no reliance on `~`, `$HOME`, or implicit working directory). Example: `dotnet sln c:\ws\BudgetExpirement\BudgetExperiment.sln add c:\ws\BudgetExpirement\src\BudgetExperiment.Domain\BudgetExperiment.Domain.csproj`.
+- Avoid stateful assumptions about current directory; each command should be executable in isolation.
+- Prefer explicit paths when creating, editing, or referencing solution/project files to ensure reproducibility across developer environments.
