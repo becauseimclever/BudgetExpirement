@@ -25,4 +25,17 @@ public sealed class BillScheduleRepository : IReadRepository<BillSchedule>, IWri
     {
         await this._db.BillSchedules.AddAsync(entity, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<BillSchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
+        => await this._db.BillSchedules
+            .OrderBy(b => b.CreatedUtc)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+        => await this._db.BillSchedules.LongCountAsync(cancellationToken).ConfigureAwait(false);
 }

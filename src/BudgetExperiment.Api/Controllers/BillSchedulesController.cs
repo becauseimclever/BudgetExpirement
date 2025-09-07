@@ -3,7 +3,7 @@ namespace BudgetExperiment.Api.Controllers;
 using BudgetExperiment.Api.Dtos;
 using BudgetExperiment.Application.BillSchedules;
 using BudgetExperiment.Domain;
-
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>Bill schedules API.</summary>
@@ -84,5 +84,26 @@ public sealed class BillSchedulesController : ControllerBase
 
         var occurrences = await this._service.GetOccurrencesAsync(id, start, end, ct).ConfigureAwait(false);
         return this.Ok(occurrences);
+    }
+
+    /// <summary>List bill schedules.</summary>
+    /// <param name="page">Page.</param>
+    /// <param name="pageSize">Page size.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Paged list.</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<BillScheduleDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    {
+        var (items, total) = await this._service.ListAsync(page, pageSize, ct).ConfigureAwait(false);
+        var result = new PagedResult<BillScheduleDto>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+        };
+        this.Response.Headers["X-Pagination-TotalCount"] = total.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return this.Ok(result);
     }
 }

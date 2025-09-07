@@ -25,4 +25,17 @@ public sealed class PayScheduleRepository : IReadRepository<PaySchedule>, IWrite
     {
         await this._db.PaySchedules.AddAsync(entity, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PaySchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
+        => await this._db.PaySchedules
+            .OrderBy(p => p.CreatedUtc)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+        => await this._db.PaySchedules.LongCountAsync(cancellationToken).ConfigureAwait(false);
 }

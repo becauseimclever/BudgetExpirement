@@ -4,6 +4,7 @@
 using BudgetExperiment.Application;
 using BudgetExperiment.Infrastructure;
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 using Scalar.AspNetCore;
@@ -11,7 +12,7 @@ using Scalar.AspNetCore;
 /// <summary>
 /// Application entry point.
 /// </summary>
-public static partial class Program
+public partial class Program
 {
     /// <summary>
     /// Main entry point. Configures and runs the ASP.NET Core host.
@@ -41,6 +42,10 @@ public static partial class Program
         app.UseHttpsRedirection();
         app.UseCors("dev");
 
+        // Serve Blazor WebAssembly client (static web assets from referenced Client project).
+        app.UseBlazorFrameworkFiles();
+        app.UseStaticFiles();
+
         // Expose OpenAPI document (AspNetCore.OpenApi)
         app.MapOpenApi();
         app.MapScalarApiReference();
@@ -49,8 +54,28 @@ public static partial class Program
         app.MapControllers();
         app.MapHealthChecks("/health");
 
+        // Fallback to index.html for client-side routes.
+        app.MapFallbackToFile("index.html");
+
         // Custom exception handling
         app.UseMiddleware<BudgetExperiment.Api.Middleware.ExceptionHandlingMiddleware>();
+
+        // (Temporary) ensure database exists for development/integration usage until migrations are introduced.
+        using (var scope = app.Services.CreateScope())
+        {
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<BudgetDbContext>();
+                await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log minimal info (logging pipeline configured later) and rethrow.
+                Console.Error.WriteLine($"Database ensure/create failed: {ex.Message}");
+                throw;
+            }
+        }
+
         await app.RunAsync().ConfigureAwait(false);
     }
 }

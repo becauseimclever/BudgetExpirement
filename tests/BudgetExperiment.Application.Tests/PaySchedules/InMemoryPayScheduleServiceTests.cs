@@ -54,6 +54,15 @@ public sealed class InMemoryPayScheduleServiceTests
 
         public Task<PaySchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
             => Task.FromResult(this._data.TryGetValue(id, out var v) ? v : null);
+
+        public Task<IReadOnlyList<PaySchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
+        {
+            var list = this._data.Values.OrderBy(p => p.CreatedUtc).Skip(skip).Take(take).ToList();
+            return Task.FromResult((IReadOnlyList<PaySchedule>)list);
+        }
+
+        public Task<long> CountAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult((long)this._data.Count);
     }
 
     private sealed class InMemoryUow : IUnitOfWork

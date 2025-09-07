@@ -64,6 +64,15 @@ public sealed class BillScheduleServiceTests
             store.Items.TryGetValue(id, out var val);
             return Task.FromResult(val);
         }
+
+        public Task<IReadOnlyList<BillSchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
+        {
+            var list = store.Items.Values.OrderBy(b => b.CreatedUtc).Skip(skip).Take(take).ToList();
+            return Task.FromResult((IReadOnlyList<BillSchedule>)list);
+        }
+
+        public Task<long> CountAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult((long)store.Items.Count);
     }
 
     private sealed class WriteRepo(InMemoryStore<BillSchedule> store) : IWriteRepository<BillSchedule>

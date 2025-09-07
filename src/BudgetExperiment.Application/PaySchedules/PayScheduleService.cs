@@ -60,4 +60,23 @@ public sealed class PayScheduleService : IPayScheduleService
         var schedule = await this._read.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
         return schedule is null ? null : PayScheduleDto.FromEntity(schedule);
     }
+
+    /// <inheritdoc />
+    public async Task<(IReadOnlyList<PayScheduleDto> Items, long Total)> ListAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1)
+        {
+            pageSize = 20;
+        }
+
+        int skip = (page - 1) * pageSize;
+        var entities = await this._read.ListAsync(skip, pageSize, cancellationToken).ConfigureAwait(false);
+        var total = await this._read.CountAsync(cancellationToken).ConfigureAwait(false);
+        return (entities.Select(PayScheduleDto.FromEntity).ToList(), total);
+    }
 }

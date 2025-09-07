@@ -28,4 +28,11 @@ public interface IBillScheduleService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>DTO or null if not found.</returns>
     Task<BillScheduleDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>List bill schedules (paged).</summary>
+    /// <param name="page">1-based page.</param>
+    /// <param name="pageSize">Page size.</param>
+    /// <param name="cancellationToken">Token.</param>
+    /// <returns>Items + total count.</returns>
+    Task<(IReadOnlyList<BillScheduleDto> Items, long Total)> ListAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 }

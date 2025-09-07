@@ -32,4 +32,11 @@ public interface IPayScheduleService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>DTO or null.</returns>
     Task<PayScheduleDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>List schedules (paged).</summary>
+    /// <param name="page">1-based page.</param>
+    /// <param name="pageSize">Page size.</param>
+    /// <param name="cancellationToken">Token.</param>
+    /// <returns>Items + total count.</returns>
+    Task<(IReadOnlyList<PayScheduleDto> Items, long Total)> ListAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 }
