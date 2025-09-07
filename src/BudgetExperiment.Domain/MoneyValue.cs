@@ -2,9 +2,28 @@ namespace BudgetExperiment.Domain;
 
 /// <summary>
 /// Immutable monetary value and currency (2 decimal rounding, away from zero).
+/// Converted to reference type record to simplify EF Core owned mapping.
 /// </summary>
-public readonly record struct MoneyValue(string Currency, decimal Amount)
+public sealed record MoneyValue
 {
+    /// <summary>Initializes a new instance of the <see cref="MoneyValue"/> class.</summary>
+    /// <param name="currency">Currency code.</param>
+    /// <param name="amount">Amount.</param>
+    private MoneyValue(string currency, decimal amount)
+    {
+        this.Currency = currency;
+        this.Amount = amount;
+    }
+
+    /// <summary>Gets currency code (ISO upper case).</summary>
+    public string Currency { get; init; } = string.Empty;
+
+    /// <summary>Gets monetary amount (scaled 2 decimals).</summary>
+    public decimal Amount
+    {
+        get; init;
+    }
+
     /// <summary>
     /// Adds two monetary values of the same currency.
     /// </summary>

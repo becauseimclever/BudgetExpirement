@@ -1,3 +1,13 @@
+# top-level EditorConfig
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# Exclude EF Core migrations (auto-generated) from analyzer noise / StyleCop rules
+[**/Migrations/*.cs]
+dotnet_analyzer_diagnostic.severity = none
 root = true
 
 [*.cs]

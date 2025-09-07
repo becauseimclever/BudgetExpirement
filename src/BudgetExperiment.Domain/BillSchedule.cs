@@ -5,6 +5,19 @@ namespace BudgetExperiment.Domain;
 /// </summary>
 public sealed class BillSchedule
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BillSchedule"/> class for EF Core.
+    /// </summary>
+    private BillSchedule()
+    {
+        // For EF Core
+        this.Id = Guid.Empty;
+        this.Name = string.Empty;
+        this.Amount = MoneyValue.Create("XXX", 0m);
+        this.Anchor = default;
+        this.Recurrence = RecurrenceKind.Monthly;
+    }
+
     private BillSchedule(Guid id, string name, MoneyValue amount, DateOnly anchor, RecurrenceKind recurrence)
     {
         this.Id = id;
@@ -22,34 +35,19 @@ public sealed class BillSchedule
     }
 
     /// <summary>Gets the unique identifier.</summary>
-    public Guid Id
-    {
-        get;
-    }
+    public Guid Id { get; private set; }
 
     /// <summary>Gets the bill name.</summary>
-    public string Name
-    {
-        get;
-    }
+    public string Name { get; private set; }
 
     /// <summary>Gets the bill amount.</summary>
-    public MoneyValue Amount
-    {
-        get;
-    }
+    public MoneyValue Amount { get; private set; }
 
     /// <summary>Gets the anchor (first due date).</summary>
-    public DateOnly Anchor
-    {
-        get;
-    }
+    public DateOnly Anchor { get; private set; }
 
     /// <summary>Gets the recurrence kind.</summary>
-    public RecurrenceKind Recurrence
-    {
-        get;
-    }
+    public RecurrenceKind Recurrence { get; private set; }
 
     /// <summary>Create a monthly bill schedule.</summary>
     /// <param name="name">Bill name.</param>

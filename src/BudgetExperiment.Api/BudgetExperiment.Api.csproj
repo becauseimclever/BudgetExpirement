@@ -10,6 +10,10 @@
   <ItemGroup>
   <PackageReference Include="Scalar.AspNetCore" Version="2.7.2" />
   <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-preview.7.25380.108" />
+  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-preview.7.25380.108">
+    <PrivateAssets>all</PrivateAssets>
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+  </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

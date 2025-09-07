@@ -5,6 +5,14 @@ namespace BudgetExperiment.Domain;
 /// </summary>
 public sealed class PaySchedule
 {
+    private PaySchedule()
+    {
+        // For EF Core
+        this.Id = Guid.Empty;
+        this.Anchor = default;
+        this.Recurrence = RecurrenceKind.Weekly;
+    }
+
     private PaySchedule(Guid id, DateOnly anchor, RecurrenceKind recurrence)
     {
         this.Id = id;
@@ -23,19 +31,13 @@ public sealed class PaySchedule
     }
 
     /// <summary>Gets the anchor date (first occurrence).</summary>
-    public DateOnly Anchor
-    {
-        get;
-    }
+    public DateOnly Anchor { get; private set; }
 
     /// <summary>Gets the unique identifier.</summary>
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
     /// <summary>Gets the recurrence pattern.</summary>
-    public RecurrenceKind Recurrence
-    {
-        get;
-    }
+    public RecurrenceKind Recurrence { get; private set; }
 
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>

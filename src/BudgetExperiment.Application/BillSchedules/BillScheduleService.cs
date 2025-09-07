@@ -44,4 +44,11 @@ public sealed class BillScheduleService : IBillScheduleService
 
         return schedule.GetOccurrences(start, end).ToArray();
     }
+
+    /// <inheritdoc />
+    public async Task<BillScheduleDto?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var schedule = await this._read.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        return schedule is null ? null : BillScheduleDto.FromEntity(schedule);
+    }
 }

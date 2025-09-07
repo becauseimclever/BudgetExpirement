@@ -26,4 +26,10 @@ public interface IPayScheduleService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Occurrences.</returns>
     Task<IEnumerable<DateOnly>> GetOccurrencesAsync(Guid id, DateOnly start, DateOnly end, CancellationToken cancellationToken = default);
+
+    /// <summary>Get schedule details.</summary>
+    /// <param name="id">Schedule id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>DTO or null.</returns>
+    Task<PayScheduleDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 }

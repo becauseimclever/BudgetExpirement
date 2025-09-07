@@ -22,4 +22,10 @@ public interface IBillScheduleService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Due dates.</returns>
     Task<IEnumerable<DateOnly>> GetOccurrencesAsync(Guid id, DateOnly start, DateOnly end, CancellationToken cancellationToken = default);
+
+    /// <summary>Get a bill schedule details.</summary>
+    /// <param name="id">Schedule id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>DTO or null if not found.</returns>
+    Task<BillScheduleDto?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 }
