@@ -3,7 +3,9 @@
 
 using BudgetExperiment.Application;
 using BudgetExperiment.Infrastructure;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Scalar.AspNetCore;
 
 /// <summary>
@@ -27,6 +29,7 @@ public static class Program
         // Application & Infrastructure
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddHealthChecks();
 
         builder.Services.AddCors(options =>
         {
@@ -44,6 +47,7 @@ public static class Program
 
         app.UseAuthorization();
         app.MapControllers();
+        app.MapHealthChecks("/health");
 
         // Temporary minimal endpoints for smoke testing pay schedules.
         app.MapPost("/api/v1/payschedules/weekly", async (DateOnly anchor, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc, CancellationToken ct) =>

@@ -25,6 +25,7 @@ public sealed class BillSchedule
         this.Amount = amount;
         this.Anchor = anchor;
         this.Recurrence = recurrence;
+        this.CreatedUtc = DateTime.UtcNow;
     }
 
     /// <summary>Recurrence kinds supported.</summary>
@@ -35,19 +36,46 @@ public sealed class BillSchedule
     }
 
     /// <summary>Gets the unique identifier.</summary>
-    public Guid Id { get; private set; }
+    public Guid Id
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the bill name.</summary>
-    public string Name { get; private set; }
+    public string Name
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the bill amount.</summary>
-    public MoneyValue Amount { get; private set; }
+    public MoneyValue Amount
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the anchor (first due date).</summary>
-    public DateOnly Anchor { get; private set; }
+    public DateOnly Anchor
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the recurrence kind.</summary>
-    public RecurrenceKind Recurrence { get; private set; }
+    public RecurrenceKind Recurrence
+    {
+        get; private set;
+    }
+
+    /// <summary>Gets the UTC creation timestamp.</summary>
+    public DateTime CreatedUtc
+    {
+        get; private set;
+    }
+
+    /// <summary>Gets the UTC last update timestamp, null if never updated.</summary>
+    public DateTime? UpdatedUtc
+    {
+        get; private set;
+    }
 
     /// <summary>Create a monthly bill schedule.</summary>
     /// <param name="name">Bill name.</param>
@@ -67,6 +95,12 @@ public sealed class BillSchedule
         }
 
         return new BillSchedule(Guid.NewGuid(), name.Trim(), amount, anchor, RecurrenceKind.Monthly);
+    }
+
+    /// <summary>Marks the entity as updated (for future mutable operations).</summary>
+    public void MarkUpdated()
+    {
+        this.UpdatedUtc = DateTime.UtcNow;
     }
 
     /// <summary>Get due dates within an inclusive range.</summary>

@@ -18,6 +18,7 @@ public sealed class PaySchedule
         this.Id = id;
         this.Anchor = anchor;
         this.Recurrence = recurrence;
+        this.CreatedUtc = DateTime.UtcNow;
     }
 
     /// <summary>Recurrence kind.</summary>
@@ -31,13 +32,34 @@ public sealed class PaySchedule
     }
 
     /// <summary>Gets the anchor date (first occurrence).</summary>
-    public DateOnly Anchor { get; private set; }
+    public DateOnly Anchor
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the unique identifier.</summary>
-    public Guid Id { get; private set; }
+    public Guid Id
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the recurrence pattern.</summary>
-    public RecurrenceKind Recurrence { get; private set; }
+    public RecurrenceKind Recurrence
+    {
+        get; private set;
+    }
+
+    /// <summary>Gets the UTC creation timestamp.</summary>
+    public DateTime CreatedUtc
+    {
+        get; private set;
+    }
+
+    /// <summary>Gets the UTC last update timestamp, null if never updated.</summary>
+    public DateTime? UpdatedUtc
+    {
+        get; private set;
+    }
 
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
@@ -48,6 +70,12 @@ public sealed class PaySchedule
     /// <param name="anchor">Anchor (first occurrence) date.</param>
     /// <returns>New <see cref="PaySchedule"/>.</returns>
     public static PaySchedule CreateMonthly(DateOnly anchor) => new(Guid.NewGuid(), anchor, RecurrenceKind.Monthly);
+
+    /// <summary>Marks the entity as updated (for future mutable operations).</summary>
+    public void MarkUpdated()
+    {
+        this.UpdatedUtc = DateTime.UtcNow;
+    }
 
     /// <summary>
     /// Gets all occurrence dates within the inclusive range.

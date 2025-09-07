@@ -1,6 +1,7 @@
 namespace BudgetExperiment.Infrastructure;
 
 using BudgetExperiment.Domain;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -25,6 +26,20 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     public DbSet<PaySchedule> PaySchedules => this.Set<PaySchedule>();
 
     /// <inheritdoc />
+    public override int SaveChanges()
+    {
+        this.ApplyTimestamps();
+        return base.SaveChanges();
+    }
+
+    /// <inheritdoc />
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        this.ApplyTimestamps();
+        return await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // BillSchedule mapping (value object MoneyValue owned type pattern via conversion)
@@ -39,6 +54,8 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             });
             b.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
             b.Property(x => x.Recurrence).IsRequired();
+            b.Property(x => x.CreatedUtc).IsRequired();
+            b.Property(x => x.UpdatedUtc);
         });
 
         modelBuilder.Entity<PaySchedule>(p =>
@@ -46,7 +63,27 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             p.HasKey(x => x.Id);
             p.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
             p.Property(x => x.Recurrence).IsRequired();
+            p.Property(x => x.CreatedUtc).IsRequired();
+            p.Property(x => x.UpdatedUtc);
         });
+    }
+
+    private void ApplyTimestamps()
+    {
+        foreach (var entry in this.ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                if (entry.Entity is BillSchedule bs)
+                {
+                    bs.MarkUpdated();
+                }
+                else if (entry.Entity is PaySchedule ps)
+                {
+                    ps.MarkUpdated();
+                }
+            }
+        }
     }
 
     /// <summary>
