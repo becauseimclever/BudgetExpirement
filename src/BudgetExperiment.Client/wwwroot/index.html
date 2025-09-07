@@ -27,6 +27,14 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        window.focusElementByTabIndex = function(tabIndex) {
+            const element = document.querySelector(`[tabindex="${tabIndex}"]`);
+            if (element) {
+                element.focus();
+            }
+        };
+    </script>
 </body>
 
 </html>
