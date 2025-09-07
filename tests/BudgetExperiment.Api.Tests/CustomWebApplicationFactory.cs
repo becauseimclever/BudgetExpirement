@@ -1,6 +1,7 @@
 namespace BudgetExperiment.Api.Tests;
 
 using BudgetExperiment.Infrastructure;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

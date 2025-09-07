@@ -2,9 +2,12 @@ namespace BudgetExperiment.Api.Tests;
 
 using System.Net;
 using System.Net.Http.Json;
+
 using BudgetExperiment.Api.Dtos;
 using BudgetExperiment.Application.PaySchedules;
+
 using Microsoft.AspNetCore.Mvc.Testing;
+
 using Shouldly;
 
 public sealed class PaySchedulesIntegrationTests : IClassFixture<CustomWebApplicationFactory>
@@ -13,7 +16,7 @@ public sealed class PaySchedulesIntegrationTests : IClassFixture<CustomWebApplic
 
     public PaySchedulesIntegrationTests(CustomWebApplicationFactory factory)
     {
-    this._client = factory.CreateApiClient();
+        this._client = factory.CreateApiClient();
     }
 
     [Fact]
