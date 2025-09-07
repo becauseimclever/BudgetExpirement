@@ -1,0 +1,200 @@
+@page "/paycalendar"
+@inject HttpClient Http
+
+<PageTitle>Pay Calendar</PageTitle>
+
+<h3>Pay Calendar</h3>
+
+<div class="mb-3">
+    <label>Start Month: <input type="month" value="@monthInput" @onchange="OnMonthChanged" /></label>
+</div>
+<div class="mb-3">
+    <label>Show Months: <input type="number" min="1" max="12" @bind-value="monthsToShow" /></label>
+</div>
+<div class="mb-3">
+    <label>Select Pay Schedule:
+        <select @bind="selectedScheduleId">
+            <option value="">-- choose --</option>
+            @foreach (var ps in paySchedules)
+            {
+                <option value="@ps.Id">@ps.Recurrence @ps.Anchor (@ps.Currency @ps.Amount)</option>
+            }
+        </select>
+    </label>
+</div>
+<button class="btn btn-primary" @onclick="LoadOccurrences" disabled="@(string.IsNullOrEmpty(selectedScheduleId))">Load</button>
+
+@if (calendarMonths.Count > 0)
+{
+    <div class="calendar-grid">
+        @foreach (var month in calendarMonths)
+        {
+            <div class="calendar-month">
+                <h5>@month.MonthName @month.Year</h5>
+                <table class="table table-sm table-bordered calendar-table">
+                    <thead>
+                        <tr>
+                            @foreach (var wd in weekDayHeaders)
+                            {
+                                <th>@wd</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var week in month.Weeks)
+                        {
+                            <tr>
+                                @foreach (var day in week)
+                                {
+                                    if (day == DateOnly.MinValue)
+                                    {
+                                        <td class="empty"></td>
+                                    }
+                                    else
+                                    {
+                                        var hasPay = occurrenceSet.Contains(day);
+                                        <td class="@(hasPay ? "pay-day" : "")">
+                                            <div class="day-number">@day.Day</div>
+                                            @if (hasPay)
+                                            {
+                                                <div class="pay-amount">$@selectedAmount</div>
+                                            }
+                                        </td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string? selectedScheduleId;
+    private List<PayScheduleItem> paySchedules = new();
+    private string monthInput = DateTime.UtcNow.ToString("yyyy-MM");
+    private int monthsToShow = 1;
+    private HashSet<DateOnly> occurrenceSet = new();
+    private decimal selectedAmount;
+
+    private readonly string[] weekDayHeaders = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    private readonly List<CalendarMonth> calendarMonths = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPaySchedules();
+    }
+
+    private async Task LoadPaySchedules()
+    {
+        var result = await Http.GetFromJsonAsync<PagedResult<PayScheduleItem>>("api/v1/payschedules?page=1&pageSize=100");
+        if (result?.Items != null)
+        {
+            paySchedules = result.Items.ToList();
+        }
+    }
+
+    private async Task LoadOccurrences()
+    {
+        occurrenceSet.Clear();
+        calendarMonths.Clear();
+        if (string.IsNullOrEmpty(selectedScheduleId)) return;
+        if (!Guid.TryParse(selectedScheduleId, out var id)) return;
+
+    var startMonth = DateTime.Parse(monthInput + "-01");
+        var start = DateOnly.FromDateTime(startMonth);
+        var end = DateOnly.FromDateTime(startMonth.AddMonths(monthsToShow).AddDays(-1));
+
+        var occ = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/payschedules/{id}/occurrences?start={start:yyyy-MM-dd}&end={end:yyyy-MM-dd}");
+        if (occ != null)
+        {
+            occurrenceSet = occ.ToHashSet();
+        }
+
+        var schedule = paySchedules.FirstOrDefault(p => p.Id == id);
+        selectedAmount = schedule?.Amount ?? 0m;
+
+        BuildCalendarMonths(startMonth.Year, startMonth.Month, monthsToShow);
+    }
+
+    private Task OnMonthChanged(ChangeEventArgs e)
+    {
+        monthInput = e.Value?.ToString() ?? DateTime.UtcNow.ToString("yyyy-MM");
+        return Task.CompletedTask;
+    }
+
+    private void BuildCalendarMonths(int year, int month, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            var dt = new DateTime(year, month, 1).AddMonths(i);
+            calendarMonths.Add(BuildCalendarMonth(dt.Year, dt.Month));
+        }
+    }
+
+    private CalendarMonth BuildCalendarMonth(int year, int month)
+    {
+        var firstDay = new DateTime(year, month, 1);
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var offset = (int)firstDay.DayOfWeek; // Sunday=0
+        var weeks = new List<List<DateOnly>>();
+        var currentWeek = new List<DateOnly>();
+        for (int i = 0; i < offset; i++) currentWeek.Add(DateOnly.MinValue);
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            currentWeek.Add(new DateOnly(year, month, day));
+            if (currentWeek.Count == 7)
+            {
+                weeks.Add(currentWeek);
+                currentWeek = new List<DateOnly>();
+            }
+        }
+        if (currentWeek.Count > 0)
+        {
+            while (currentWeek.Count < 7) currentWeek.Add(DateOnly.MinValue);
+            weeks.Add(currentWeek);
+        }
+        return new CalendarMonth
+        {
+            Year = year,
+            Month = month,
+            MonthName = firstDay.ToString("MMMM"),
+            Weeks = weeks,
+        };
+    }
+
+    private sealed class CalendarMonth
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; } = string.Empty;
+        public List<List<DateOnly>> Weeks { get; set; } = new();
+    }
+
+    private sealed record PayScheduleItem(Guid Id, DateOnly Anchor, string Currency, decimal Amount, int? DaysInterval, DateTime CreatedUtc, DateTime? UpdatedUtc, RecurrenceKind Recurrence);
+
+    private enum RecurrenceKind { Weekly, Monthly, BiWeekly, Custom }
+
+    private sealed class PagedResult<TItem>
+    {
+        public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public long TotalCount { get; set; }
+    }
+}
+
+<style>
+.calendar-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
+.calendar-month { border: 1px solid #ccc; padding: .5rem; width: 260px; }
+.calendar-table { width: 100%; table-layout: fixed; }
+.calendar-table th { text-align: center; font-weight: 600; }
+.calendar-table td { height: 48px; vertical-align: top; padding: 2px; font-size: 0.8rem; position: relative; }
+.calendar-table td.pay-day { background: #e0f7ec; border: 2px solid #1b8f4d; }
+.calendar-table td .day-number { font-weight: 600; }
+.calendar-table td .pay-amount { position: absolute; bottom: 2px; right: 4px; font-size: 0.65rem; background: #1b8f4d; color: white; padding: 2px 4px; border-radius: 3px; }
+.calendar-table td.empty { background: #f8f8f8; }
+</style>
