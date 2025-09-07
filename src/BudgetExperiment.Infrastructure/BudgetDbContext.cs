@@ -28,6 +28,9 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     /// <summary>Gets expenses set.</summary>
     public DbSet<Expense> Expenses => this.Set<Expense>();
 
+    /// <summary>Gets adhoc payments set.</summary>
+    public DbSet<AdhocPayment> AdhocPayments => this.Set<AdhocPayment>();
+
     /// <inheritdoc />
     public override int SaveChanges()
     {
@@ -91,6 +94,22 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             e.Property(x => x.UpdatedUtc);
             e.HasIndex(x => x.Date); // Index for date-based queries
         });
+
+        modelBuilder.Entity<AdhocPayment>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.Description).IsRequired().HasMaxLength(500);
+            a.OwnsOne(typeof(MoneyValue), "Money", mv =>
+            {
+                mv.Property("Currency").HasColumnName("MoneyCurrency").HasMaxLength(3).IsRequired();
+                mv.Property("Amount").HasColumnName("MoneyValue").HasColumnType("numeric(18,2)").IsRequired();
+            });
+            a.Property(x => x.Date).HasConversion(new DateOnlyConverter()).IsRequired();
+            a.Property(x => x.Category).HasMaxLength(100);
+            a.Property(x => x.CreatedUtc).IsRequired();
+            a.Property(x => x.UpdatedUtc);
+            a.HasIndex(x => x.Date); // Index for date-based queries
+        });
     }
 
     private void ApplyTimestamps()
@@ -110,6 +129,10 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
                 else if (entry.Entity is Expense expense)
                 {
                     expense.MarkUpdated();
+                }
+                else if (entry.Entity is AdhocPayment adhocPayment)
+                {
+                    adhocPayment.MarkUpdated();
                 }
             }
         }

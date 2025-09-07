@@ -52,12 +52,14 @@
                                     var hasPay = payOccurrenceCache.ContainsKey(currentMonthKey) && payOccurrenceCache[currentMonthKey].Contains(day);
                                     var hasBill = billOccurrenceCache.ContainsKey(currentMonthKey) && billOccurrenceCache[currentMonthKey].Contains(day);
                                     var hasExpense = expenseCache.ContainsKey(currentMonthKey) && expenseCache[currentMonthKey].ContainsKey(day);
+                                    var hasAdhocPayment = adhocPaymentCache.ContainsKey(currentMonthKey) && adhocPaymentCache[currentMonthKey].ContainsKey(day);
                                     
                                     var cssClass = "calendar-day";
                                     if (hasPay && hasBill) cssClass += " pay-day bill-day both-day";
                                     else if (hasPay) cssClass += " pay-day";
                                     else if (hasBill) cssClass += " bill-day";
                                     if (hasExpense) cssClass += " has-expense";
+                                    if (hasAdhocPayment) cssClass += " has-adhoc-payment";
                                     if (day == DateOnly.FromDateTime(DateTime.Today)) cssClass += " today";
                                     
                                     <td class="@cssClass" @oncontextmenu="@(e => OnRightClick(e, day))" @oncontextmenu:preventDefault="true">
@@ -81,6 +83,13 @@
                                                     <div class="expense-amount" title="@expense.Description">-$@expense.Amount.ToString("N0")</div>
                                                 }
                                             }
+                                            @if (hasAdhocPayment)
+                                            {
+                                                @foreach (var adhocPayment in GetAdhocPaymentsForDay(day))
+                                                {
+                                                    <div class="adhoc-payment-amount" title="@adhocPayment.Description">+$@adhocPayment.Amount.ToString("N0")</div>
+                                                }
+                                            }
                                         </div>
                                     </td>
                                 }
@@ -99,6 +108,9 @@
     <div class="context-menu" style="position: fixed; left: @(contextMenuX)px; top: @(contextMenuY)px; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" @onclick:stopPropagation="true">
         <div class="context-menu-item" style="padding: 8px 12px; cursor: pointer; border-radius: 3px; hover: background-color: #f0f0f0;" @onclick="() => AddExpense(contextMenuDate)">
             Add Expense for @contextMenuDate.ToString("MMM d")
+        </div>
+        <div class="context-menu-item" style="padding: 8px 12px; cursor: pointer; border-radius: 3px; hover: background-color: #f0f0f0;" @onclick="() => AddAdhocPayment(contextMenuDate)">
+            Add Adhoc Payment for @contextMenuDate.ToString("MMM d")
         </div>
     </div>
     
@@ -154,6 +166,37 @@
     </div>
 }
 
+@* Modal for adding adhoc payments *@
+@if (showAdhocPaymentModal)
+{
+    <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1100; display: flex; justify-content: center; align-items: center;" @onclick="() => CloseAdhocPaymentModal()">
+        <div class="modal-content" style="background: white; border-radius: 8px; padding: 24px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);" @onclick:stopPropagation="true">
+            <div class="modal-header" style="margin-bottom: 20px;">
+                <h4 style="margin: 0; color: #333;">Add Adhoc Payment for @adhocPaymentModalDate.ToString("MMMM d, yyyy")</h4>
+                <button type="button" class="btn-close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;" @onclick="CloseAdhocPaymentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="adhocPaymentDescription" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Description</label>
+                    <input id="adhocPaymentDescription" type="text" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="Enter payment description (e.g., Bonus, Gift)" @bind="newAdhocPaymentDescription" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveAdhocPayment(); })" />
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="adhocPaymentAmount" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Amount ($)</label>
+                    <input id="adhocPaymentAmount" type="number" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="0.00" step="0.01" min="0" @bind="newAdhocPaymentAmount" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveAdhocPayment(); })" />
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="adhocPaymentCategory" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Category (Optional)</label>
+                    <input id="adhocPaymentCategory" type="text" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="e.g., Bonus, Gift, Freelance" @bind="newAdhocPaymentCategory" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveAdhocPayment(); })" />
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" style="padding: 10px 20px; border-radius: 4px; border: 2px solid #6c757d; background: transparent; color: #6c757d; cursor: pointer; font-weight: 500;" @onclick="CloseAdhocPaymentModal">Cancel</button>
+                <button type="button" class="btn btn-primary" style="padding: 10px 20px; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-weight: 500;" @onclick="SaveAdhocPayment" disabled="@(isSavingAdhocPayment || string.IsNullOrWhiteSpace(newAdhocPaymentDescription) || newAdhocPaymentAmount <= 0)">@(isSavingAdhocPayment ? "Saving..." : "Add Payment")</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private string? selectedScheduleId;
     private List<PayScheduleItem> paySchedules = new();
@@ -173,6 +216,9 @@
     // Expense cache: monthKey -> date -> list of expenses
     private readonly Dictionary<string, Dictionary<DateOnly, List<ExpenseItem>>> expenseCache = new();
     
+    // Adhoc payment cache: monthKey -> date -> list of adhoc payments
+    private readonly Dictionary<string, Dictionary<DateOnly, List<AdhocPaymentItem>>> adhocPaymentCache = new();
+    
     // Context menu state
     private bool showContextMenu = false;
     private DateOnly contextMenuDate;
@@ -186,6 +232,14 @@
     private decimal newExpenseAmount = 0;
     private string newExpenseCategory = string.Empty;
     private bool isSaving = false;
+    
+    // Adhoc payment modal state
+    private bool showAdhocPaymentModal = false;
+    private DateOnly adhocPaymentModalDate;
+    private string newAdhocPaymentDescription = string.Empty;
+    private decimal newAdhocPaymentAmount = 0;
+    private string newAdhocPaymentCategory = string.Empty;
+    private bool isSavingAdhocPayment = false;
     
     // Toast notification state
     private readonly List<ToastMessage> toastMessages = new();
@@ -252,7 +306,10 @@
             CacheBillOccurrences(now.Year, now.Month + 1),
             CacheExpenses(now.Year, now.Month - 1),
             CacheExpenses(now.Year, now.Month),
-            CacheExpenses(now.Year, now.Month + 1)
+            CacheExpenses(now.Year, now.Month + 1),
+            CacheAdhocPayments(now.Year, now.Month - 1),
+            CacheAdhocPayments(now.Year, now.Month),
+            CacheAdhocPayments(now.Year, now.Month + 1)
         );
         
         StateHasChanged();
@@ -279,7 +336,10 @@
             CacheBillOccurrences(nextMonth.Year, nextMonth.Month),
             CacheExpenses(prevMonth.Year, prevMonth.Month),
             CacheExpenses(newDate.Year, newDate.Month),
-            CacheExpenses(nextMonth.Year, nextMonth.Month)
+            CacheExpenses(nextMonth.Year, nextMonth.Month),
+            CacheAdhocPayments(prevMonth.Year, prevMonth.Month),
+            CacheAdhocPayments(newDate.Year, newDate.Month),
+            CacheAdhocPayments(nextMonth.Year, nextMonth.Month)
         );
         
         StateHasChanged();
@@ -430,6 +490,54 @@
         }
     }
 
+    private async Task CacheAdhocPayments(int year, int month)
+    {
+        var monthKey = $"{year:D4}-{month:D2}";
+        if (adhocPaymentCache.ContainsKey(monthKey)) return; // Already cached
+
+        // Adjust for invalid months
+        var adjustedDate = new DateTime(year, month, 1);
+        if (month < 1) 
+        {
+            adjustedDate = new DateTime(year - 1, 12, 1);
+            monthKey = $"{year - 1:D4}-12";
+        }
+        else if (month > 12)
+        {
+            adjustedDate = new DateTime(year + 1, 1, 1);
+            monthKey = $"{year + 1:D4}-01";
+        }
+
+        var startDate = DateOnly.FromDateTime(adjustedDate);
+        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
+
+        try
+        {
+            var adhocPayments = await Http.GetFromJsonAsync<List<AdhocPaymentItem>>($"api/v1/adhocpayments/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+            
+            // Group adhoc payments by date
+            var adhocPaymentsByDate = new Dictionary<DateOnly, List<AdhocPaymentItem>>();
+            if (adhocPayments != null)
+            {
+                foreach (var adhocPayment in adhocPayments)
+                {
+                    if (!adhocPaymentsByDate.ContainsKey(adhocPayment.Date))
+                    {
+                        adhocPaymentsByDate[adhocPayment.Date] = new List<AdhocPaymentItem>();
+                    }
+                    adhocPaymentsByDate[adhocPayment.Date].Add(adhocPayment);
+                }
+            }
+            
+            adhocPaymentCache[monthKey] = adhocPaymentsByDate;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error fetching adhoc payments: {ex.Message}");
+            adhocPaymentCache[monthKey] = new Dictionary<DateOnly, List<AdhocPaymentItem>>();
+        }
+    }
+
     private List<BillScheduleItem> GetBillsForDay(DateOnly day)
     {
         if (!billDetailsCache.ContainsKey(currentMonthKey)) return new List<BillScheduleItem>();
@@ -445,6 +553,14 @@
         
         var monthExpenses = expenseCache[currentMonthKey];
         return monthExpenses.ContainsKey(day) ? monthExpenses[day] : new List<ExpenseItem>();
+    }
+
+    private List<AdhocPaymentItem> GetAdhocPaymentsForDay(DateOnly day)
+    {
+        if (!adhocPaymentCache.ContainsKey(currentMonthKey)) return new List<AdhocPaymentItem>();
+        
+        var monthAdhocPayments = adhocPaymentCache[currentMonthKey];
+        return monthAdhocPayments.ContainsKey(day) ? monthAdhocPayments[day] : new List<AdhocPaymentItem>();
     }
 
     private void OnRightClick(MouseEventArgs e, DateOnly date)
@@ -467,6 +583,21 @@
         newExpenseDescription = string.Empty;
         newExpenseAmount = 0;
         newExpenseCategory = string.Empty;
+        
+        StateHasChanged();
+    }
+    
+    private void AddAdhocPayment(DateOnly date)
+    {
+        // Open the adhoc payment modal
+        showContextMenu = false;
+        adhocPaymentModalDate = date;
+        showAdhocPaymentModal = true;
+        
+        // Clear previous form data
+        newAdhocPaymentDescription = string.Empty;
+        newAdhocPaymentAmount = 0;
+        newAdhocPaymentCategory = string.Empty;
         
         StateHasChanged();
     }
@@ -527,6 +658,66 @@
         finally
         {
             isSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseAdhocPaymentModal()
+    {
+        showAdhocPaymentModal = false;
+        StateHasChanged();
+    }
+    
+    private async Task SaveAdhocPayment()
+    {
+        if (string.IsNullOrWhiteSpace(newAdhocPaymentDescription) || newAdhocPaymentAmount <= 0)
+        {
+            return;
+        }
+        
+        isSavingAdhocPayment = true;
+        StateHasChanged();
+        
+        try
+        {
+            var createRequest = new CreateAdhocPaymentRequest(
+                Description: newAdhocPaymentDescription.Trim(),
+                Currency: "USD",
+                Amount: newAdhocPaymentAmount,
+                Date: adhocPaymentModalDate,
+                Category: string.IsNullOrWhiteSpace(newAdhocPaymentCategory) ? null : newAdhocPaymentCategory.Trim()
+            );
+            
+            var response = await Http.PostAsJsonAsync("api/v1/adhocpayments", createRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear the adhoc payment cache for the affected month to force refresh
+                var monthKey = adhocPaymentModalDate.ToString("yyyy-MM");
+                adhocPaymentCache.Remove(monthKey);
+                
+                // Close modal
+                CloseAdhocPaymentModal();
+                
+                // Show success message
+                ShowToast($"Adhoc payment '{newAdhocPaymentDescription}' added successfully!", false);
+                
+                // Refresh the current view
+                await LoadCurrentMonth();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast($"Failed to create adhoc payment: {response.StatusCode}. {errorContent}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error creating adhoc payment: {ex.Message}", true);
+        }
+        finally
+        {
+            isSavingAdhocPayment = false;
             StateHasChanged();
         }
     }
@@ -799,6 +990,21 @@
     font-weight: 600;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     white-space: nowrap;
+}
+
+.adhoc-payment-amount {
+    background: #28a745;
+    color: white;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    white-space: nowrap;
+}
+
+.calendar-day.has-adhoc-payment {
+    border-left: 4px solid #28a745;
 }
 
 .btn-outline-secondary {

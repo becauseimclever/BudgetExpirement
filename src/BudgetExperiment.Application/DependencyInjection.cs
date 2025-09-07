@@ -1,5 +1,6 @@
 namespace BudgetExperiment.Application;
 
+using BudgetExperiment.Application.AdhocPayments;
 using BudgetExperiment.Application.BillSchedules;
 using BudgetExperiment.Application.Expenses;
 using BudgetExperiment.Application.PaySchedules;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IPayScheduleService, PayScheduleService>();
         services.AddScoped<IBillScheduleService, BillScheduleService>();
         services.AddScoped<ExpenseService>();
+        services.AddScoped<AdhocPaymentService>();
         return services;
     }
 }
