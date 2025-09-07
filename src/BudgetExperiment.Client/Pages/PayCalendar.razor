@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @layout CalendarLayout
+@using BudgetExperiment.Client.Api
 
 <PageTitle>Pay Calendar</PageTitle>
 
@@ -51,13 +52,16 @@
                                 {
                                     var hasPay = payOccurrenceCache.ContainsKey(currentMonthKey) && payOccurrenceCache[currentMonthKey].Contains(day);
                                     var hasBill = billOccurrenceCache.ContainsKey(currentMonthKey) && billOccurrenceCache[currentMonthKey].Contains(day);
+                                    var hasExpense = expenseCache.ContainsKey(currentMonthKey) && expenseCache[currentMonthKey].ContainsKey(day);
+                                    
                                     var cssClass = "calendar-day";
                                     if (hasPay && hasBill) cssClass += " pay-day bill-day both-day";
                                     else if (hasPay) cssClass += " pay-day";
                                     else if (hasBill) cssClass += " bill-day";
+                                    if (hasExpense) cssClass += " has-expense";
                                     if (day == DateOnly.FromDateTime(DateTime.Today)) cssClass += " today";
                                     
-                                    <td class="@cssClass">
+                                    <td class="@cssClass" @oncontextmenu="@(e => OnRightClick(e, day))" @oncontextmenu:preventDefault="true">
                                         <div class="day-number">@day.Day</div>
                                         <div class="day-events">
                                             @if (hasPay)
@@ -71,6 +75,13 @@
                                                     <div class="bill-amount">-$@bill.Amount.ToString("N0")</div>
                                                 }
                                             }
+                                            @if (hasExpense)
+                                            {
+                                                @foreach (var expense in GetExpensesForDay(day))
+                                                {
+                                                    <div class="expense-amount" title="@expense.Description">-$@expense.Amount.ToString("N0")</div>
+                                                }
+                                            }
                                         </div>
                                     </td>
                                 }
@@ -82,6 +93,19 @@
         </div>
     }
 </div>
+
+@* Context menu for adding expenses *@
+@if (showContextMenu)
+{
+    <div class="context-menu" style="position: fixed; left: @(contextMenuX)px; top: @(contextMenuY)px; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" @onclick:stopPropagation="true">
+        <div class="context-menu-item" style="padding: 8px 12px; cursor: pointer; border-radius: 3px; hover: background-color: #f0f0f0;" @onclick="() => AddExpense(contextMenuDate)">
+            Add Expense for @contextMenuDate.ToString("MMM d")
+        </div>
+    </div>
+    
+    <!-- Click outside to close context menu -->
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999;" @onclick="() => showContextMenu = false"></div>
+}
 
 @code {
     private string? selectedScheduleId;
@@ -98,6 +122,15 @@
     private readonly Dictionary<string, HashSet<DateOnly>> payOccurrenceCache = new();
     private readonly Dictionary<string, HashSet<DateOnly>> billOccurrenceCache = new();
     private readonly Dictionary<string, List<BillScheduleItem>> billDetailsCache = new();
+    
+    // Expense cache: monthKey -> date -> list of expenses
+    private readonly Dictionary<string, Dictionary<DateOnly, List<ExpenseItem>>> expenseCache = new();
+    
+    // Context menu state
+    private bool showContextMenu = false;
+    private DateOnly contextMenuDate;
+    private double contextMenuX = 0;
+    private double contextMenuY = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,14 +183,17 @@
         currentMonth = BuildCalendarMonth(now.Year, now.Month);
         currentMonthKey = $"{now.Year:D4}-{now.Month:D2}";
         
-        // Pre-cache current, previous, and next months for both pay and bills
+        // Pre-cache current, previous, and next months for pay, bills, and expenses
         await Task.WhenAll(
             CachePayOccurrences(now.Year, now.Month - 1),
             CachePayOccurrences(now.Year, now.Month),
             CachePayOccurrences(now.Year, now.Month + 1),
             CacheBillOccurrences(now.Year, now.Month - 1),
             CacheBillOccurrences(now.Year, now.Month),
-            CacheBillOccurrences(now.Year, now.Month + 1)
+            CacheBillOccurrences(now.Year, now.Month + 1),
+            CacheExpenses(now.Year, now.Month - 1),
+            CacheExpenses(now.Year, now.Month),
+            CacheExpenses(now.Year, now.Month + 1)
         );
         
         StateHasChanged();
@@ -171,7 +207,7 @@
         currentMonth = BuildCalendarMonth(newDate.Year, newDate.Month);
         currentMonthKey = $"{newDate.Year:D4}-{newDate.Month:D2}";
         
-        // Pre-cache surrounding months
+        // Pre-cache surrounding months for pay, bills, and expenses
         var prevMonth = newDate.AddMonths(-1);
         var nextMonth = newDate.AddMonths(1);
         
@@ -181,7 +217,10 @@
             CachePayOccurrences(nextMonth.Year, nextMonth.Month),
             CacheBillOccurrences(prevMonth.Year, prevMonth.Month),
             CacheBillOccurrences(newDate.Year, newDate.Month),
-            CacheBillOccurrences(nextMonth.Year, nextMonth.Month)
+            CacheBillOccurrences(nextMonth.Year, nextMonth.Month),
+            CacheExpenses(prevMonth.Year, prevMonth.Month),
+            CacheExpenses(newDate.Year, newDate.Month),
+            CacheExpenses(nextMonth.Year, nextMonth.Month)
         );
         
         StateHasChanged();
@@ -284,6 +323,54 @@
         billDetailsCache[monthKey] = billDetails;
     }
 
+    private async Task CacheExpenses(int year, int month)
+    {
+        var monthKey = $"{year:D4}-{month:D2}";
+        if (expenseCache.ContainsKey(monthKey)) return; // Already cached
+
+        // Adjust for invalid months
+        var adjustedDate = new DateTime(year, month, 1);
+        if (month < 1) 
+        {
+            adjustedDate = new DateTime(year - 1, 12, 1);
+            monthKey = $"{year - 1:D4}-12";
+        }
+        else if (month > 12)
+        {
+            adjustedDate = new DateTime(year + 1, 1, 1);
+            monthKey = $"{year + 1:D4}-01";
+        }
+
+        var startDate = DateOnly.FromDateTime(adjustedDate);
+        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
+
+        try
+        {
+            var expenses = await Http.GetFromJsonAsync<List<ExpenseItem>>($"api/v1/expenses/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+            
+            // Group expenses by date
+            var expensesByDate = new Dictionary<DateOnly, List<ExpenseItem>>();
+            if (expenses != null)
+            {
+                foreach (var expense in expenses)
+                {
+                    if (!expensesByDate.ContainsKey(expense.Date))
+                    {
+                        expensesByDate[expense.Date] = new List<ExpenseItem>();
+                    }
+                    expensesByDate[expense.Date].Add(expense);
+                }
+            }
+            
+            expenseCache[monthKey] = expensesByDate;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error fetching expenses: {ex.Message}");
+            expenseCache[monthKey] = new Dictionary<DateOnly, List<ExpenseItem>>();
+        }
+    }
+
     private List<BillScheduleItem> GetBillsForDay(DateOnly day)
     {
         if (!billDetailsCache.ContainsKey(currentMonthKey)) return new List<BillScheduleItem>();
@@ -291,6 +378,31 @@
         return billSchedules.Where(bill => 
             billOccurrenceCache.ContainsKey(currentMonthKey) && 
             billOccurrenceCache[currentMonthKey].Contains(day)).ToList();
+    }
+
+    private List<ExpenseItem> GetExpensesForDay(DateOnly day)
+    {
+        if (!expenseCache.ContainsKey(currentMonthKey)) return new List<ExpenseItem>();
+        
+        var monthExpenses = expenseCache[currentMonthKey];
+        return monthExpenses.ContainsKey(day) ? monthExpenses[day] : new List<ExpenseItem>();
+    }
+
+    private void OnRightClick(MouseEventArgs e, DateOnly date)
+    {
+        showContextMenu = true;
+        contextMenuDate = date;
+        contextMenuX = e.ClientX;
+        contextMenuY = e.ClientY;
+        StateHasChanged();
+    }
+
+    private void AddExpense(DateOnly date)
+    {
+        // For now, just close the context menu
+        // TODO: Implement expense creation modal/form
+        showContextMenu = false;
+        StateHasChanged();
     }
 
     private CalendarMonth BuildCalendarMonth(int year, int month)
@@ -516,6 +628,17 @@
 
 .bill-amount {
     background: #f44336;
+    color: white;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    white-space: nowrap;
+}
+
+.expense-amount {
+    background: #ff5722;
     color: white;
     padding: 0.4rem 0.6rem;
     border-radius: 0.375rem;

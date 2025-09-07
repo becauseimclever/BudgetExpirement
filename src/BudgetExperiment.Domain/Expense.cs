@@ -26,34 +26,47 @@ public sealed class Expense
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Expense"/> class.
+    /// Private parameterless constructor for EF Core.
+    /// </summary>
+    private Expense()
+    {
+        this.Id = Guid.Empty;
+        this.Description = string.Empty;
+        this.Amount = MoneyValue.Zero("USD");
+        this.Date = DateOnly.MinValue;
+        this.CreatedUtc = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Gets the unique identifier for this expense.
     /// </summary>
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
     /// <summary>
     /// Gets the description of the expense (e.g., "Groceries at HEB").
     /// </summary>
-    public string Description { get; }
+    public string Description { get; private set; }
 
     /// <summary>
     /// Gets the amount of the expense.
     /// </summary>
-    public MoneyValue Amount { get; }
+    public MoneyValue Amount { get; private set; }
 
     /// <summary>
     /// Gets the date when the expense occurred.
     /// </summary>
-    public DateOnly Date { get; }
+    public DateOnly Date { get; private set; }
 
     /// <summary>
     /// Gets the optional category for this expense (e.g., "Groceries", "Gas", "Entertainment").
     /// </summary>
-    public string? Category { get; }
+    public string? Category { get; private set; }
 
     /// <summary>
     /// Gets the timestamp when this expense was created.
     /// </summary>
-    public DateTime CreatedUtc { get; }
+    public DateTime CreatedUtc { get; private set; }
 
     /// <summary>
     /// Gets the timestamp when this expense was last updated.
