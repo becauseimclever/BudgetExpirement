@@ -11,7 +11,7 @@ using Scalar.AspNetCore;
 /// <summary>
 /// Application entry point.
 /// </summary>
-public static class Program
+public static partial class Program
 {
     /// <summary>
     /// Main entry point. Configures and runs the ASP.NET Core host.

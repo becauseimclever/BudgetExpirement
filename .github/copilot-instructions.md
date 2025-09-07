@@ -208,3 +208,11 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 - PowerShell commands must use fully qualified paths (no reliance on `~`, `$HOME`, or implicit working directory). Example: `dotnet sln c:\ws\BudgetExpirement\BudgetExperiment.sln add c:\ws\BudgetExpirement\src\BudgetExperiment.Domain\BudgetExperiment.Domain.csproj`.
 - Avoid stateful assumptions about current directory; each command should be executable in isolation.
 - Prefer explicit paths when creating, editing, or referencing solution/project files to ensure reproducibility across developer environments.
+
+## 32. NuGet Package Management
+- Always add or update NuGet dependencies using the `dotnet` CLI, not by manually editing `.csproj` files.
+- Preferred pattern (explicit paths + version pin):
+    - `dotnet add c:\ws\BudgetExpirement\tests\BudgetExperiment.Api.Tests\BudgetExperiment.Api.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 8.0.8`
+- Do NOT hand-edit `<ItemGroup><PackageReference .../></ItemGroup>` blocks unless performing a mechanical conflict resolution that cannot be expressed via CLI (rare—document justification if needed).
+- When removing a package: `dotnet remove <csprojPath> package <PackageName>`.
+- Keep versions explicit (no floating ranges) to preserve reproducibility; update via intentional CLI commands.
