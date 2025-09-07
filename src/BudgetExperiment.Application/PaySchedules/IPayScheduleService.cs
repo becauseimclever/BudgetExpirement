@@ -9,15 +9,32 @@ public interface IPayScheduleService
 {
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">First occurrence.</param>
+    /// <param name="amount">Pay amount.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Identifier of created schedule.</returns>
-    Task<Guid> CreateWeeklyAsync(DateOnly anchor, CancellationToken cancellationToken = default);
+    Task<Guid> CreateWeeklyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default);
 
     /// <summary>Create a monthly pay schedule.</summary>
     /// <param name="anchor">First occurrence.</param>
+    /// <param name="amount">Pay amount.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Identifier of created schedule.</returns>
-    Task<Guid> CreateMonthlyAsync(DateOnly anchor, CancellationToken cancellationToken = default);
+    Task<Guid> CreateMonthlyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default);
+
+    /// <summary>Create a bi-weekly (14 day) schedule.</summary>
+    /// <param name="anchor">First occurrence.</param>
+    /// <param name="amount">Pay amount.</param>
+    /// <param name="cancellationToken">Token.</param>
+    /// <returns>Identifier.</returns>
+    Task<Guid> CreateBiWeeklyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default);
+
+    /// <summary>Create a custom day-interval schedule.</summary>
+    /// <param name="anchor">First occurrence.</param>
+    /// <param name="amount">Pay amount.</param>
+    /// <param name="intervalDays">Interval in days (>=1).</param>
+    /// <param name="cancellationToken">Token.</param>
+    /// <returns>Identifier.</returns>
+    Task<Guid> CreateCustomAsync(DateOnly anchor, MoneyValue amount, int intervalDays, CancellationToken cancellationToken = default);
 
     /// <summary>Get occurrences for schedule inside inclusive range.</summary>
     /// <param name="id">Schedule id.</param>

@@ -67,6 +67,14 @@ public partial class Program
             {
                 var db = scope.ServiceProvider.GetRequiredService<BudgetDbContext>();
                 await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
+
+                // Seed bi-weekly pay schedule if none exist.
+                if (!db.PaySchedules.Any())
+                {
+                    var seed = BudgetExperiment.Domain.PaySchedule.CreateBiWeekly(new DateOnly(2025, 8, 29), BudgetExperiment.Domain.MoneyValue.Create("USD", 1500m));
+                    db.PaySchedules.Add(seed);
+                    await db.SaveChangesAsync().ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {

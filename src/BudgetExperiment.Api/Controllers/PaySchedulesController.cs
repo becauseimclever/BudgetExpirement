@@ -29,7 +29,8 @@ public sealed class PaySchedulesController : ControllerBase
             return this.ValidationProblem("Anchor is required.");
         }
 
-        var id = await this._service.CreateWeeklyAsync(request.Anchor, ct).ConfigureAwait(false);
+        var amount = BudgetExperiment.Domain.MoneyValue.Create(request.Currency, request.Amount);
+        var id = await this._service.CreateWeeklyAsync(request.Anchor, amount, ct).ConfigureAwait(false);
         var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false)!;
         return this.Created($"/api/v1/payschedules/{id}", dto);
     }
@@ -47,7 +48,27 @@ public sealed class PaySchedulesController : ControllerBase
             return this.ValidationProblem("Anchor is required.");
         }
 
-        var id = await this._service.CreateMonthlyAsync(request.Anchor, ct).ConfigureAwait(false);
+        var amount = BudgetExperiment.Domain.MoneyValue.Create(request.Currency, request.Amount);
+        var id = await this._service.CreateMonthlyAsync(request.Anchor, amount, ct).ConfigureAwait(false);
+        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false)!;
+        return this.Created($"/api/v1/payschedules/{id}", dto);
+    }
+
+    /// <summary>Create bi-weekly pay schedule.</summary>
+    /// <param name="request">Request body.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Created resource.</returns>
+    [HttpPost("biweekly")]
+    [ProducesResponseType(typeof(BudgetExperiment.Application.PaySchedules.PayScheduleDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateBiWeekly([FromBody] CreateWeeklyPayScheduleRequest request, CancellationToken ct)
+    {
+        if (request.Anchor == default)
+        {
+            return this.ValidationProblem("Anchor is required.");
+        }
+
+        var amount = BudgetExperiment.Domain.MoneyValue.Create(request.Currency, request.Amount);
+        var id = await this._service.CreateBiWeeklyAsync(request.Anchor, amount, ct).ConfigureAwait(false);
         var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false)!;
         return this.Created($"/api/v1/payschedules/{id}", dto);
     }

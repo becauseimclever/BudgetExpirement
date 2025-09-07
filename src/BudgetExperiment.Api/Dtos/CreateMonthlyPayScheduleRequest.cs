@@ -8,4 +8,10 @@ public sealed class CreateMonthlyPayScheduleRequest
     {
         get; set;
     }
+
+    /// <summary>Gets or sets ISO currency code.</summary>
+    public string Currency { get; set; } = "USD";
+
+    /// <summary>Gets or sets amount.</summary>
+    public decimal Amount { get; set; }
 }

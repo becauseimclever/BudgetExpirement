@@ -25,18 +25,36 @@ public sealed class PayScheduleService : IPayScheduleService
     }
 
     /// <inheritdoc />
-    public async Task<Guid> CreateWeeklyAsync(DateOnly anchor, CancellationToken cancellationToken = default)
+    public async Task<Guid> CreateWeeklyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default)
     {
-        var schedule = PaySchedule.CreateWeekly(anchor);
+        var schedule = PaySchedule.CreateWeekly(anchor, amount);
         await this._write.AddAsync(schedule, cancellationToken).ConfigureAwait(false);
         await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return schedule.Id;
     }
 
     /// <inheritdoc />
-    public async Task<Guid> CreateMonthlyAsync(DateOnly anchor, CancellationToken cancellationToken = default)
+    public async Task<Guid> CreateMonthlyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default)
     {
-        var schedule = PaySchedule.CreateMonthly(anchor);
+        var schedule = PaySchedule.CreateMonthly(anchor, amount);
+        await this._write.AddAsync(schedule, cancellationToken).ConfigureAwait(false);
+        await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return schedule.Id;
+    }
+
+    /// <inheritdoc />
+    public async Task<Guid> CreateBiWeeklyAsync(DateOnly anchor, MoneyValue amount, CancellationToken cancellationToken = default)
+    {
+        var schedule = PaySchedule.CreateBiWeekly(anchor, amount);
+        await this._write.AddAsync(schedule, cancellationToken).ConfigureAwait(false);
+        await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return schedule.Id;
+    }
+
+    /// <inheritdoc />
+    public async Task<Guid> CreateCustomAsync(DateOnly anchor, MoneyValue amount, int intervalDays, CancellationToken cancellationToken = default)
+    {
+        var schedule = PaySchedule.CreateCustom(anchor, amount, intervalDays);
         await this._write.AddAsync(schedule, cancellationToken).ConfigureAwait(false);
         await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return schedule.Id;

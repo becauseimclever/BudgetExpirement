@@ -63,6 +63,12 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             p.HasKey(x => x.Id);
             p.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
             p.Property(x => x.Recurrence).IsRequired();
+            p.Property(x => x.DaysInterval);
+            p.OwnsOne(typeof(MoneyValue), "Amount", mv =>
+            {
+                mv.Property("Currency").HasColumnName("PayAmountCurrency").HasMaxLength(3).IsRequired();
+                mv.Property("Amount").HasColumnName("PayAmountValue").HasColumnType("numeric(18,2)").IsRequired();
+            });
             p.Property(x => x.CreatedUtc).IsRequired();
             p.Property(x => x.UpdatedUtc);
         });
