@@ -6,20 +6,58 @@ using BudgetExperiment.Domain;
 public sealed class InMemoryPayScheduleServiceTests
 {
     [Fact]
-    public void Create_And_Retrieve_Weekly()
+    public async Task Create_And_Retrieve_Weekly()
     {
-        var svc = new InMemoryPayScheduleService();
+        var harness = new Harness();
         var anchor = new DateOnly(2025, 1, 3); // Friday
-        var id = svc.CreateWeekly(anchor);
-        var occurrences = svc.GetOccurrences(id, new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31)).ToList();
+        var id = await harness.Service.CreateWeeklyAsync(anchor);
+        var occurrences = (await harness.Service.GetOccurrencesAsync(id, new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31))).ToList();
         Assert.Contains(anchor, occurrences);
         Assert.All(occurrences, d => Assert.Equal(DayOfWeek.Friday, d.DayOfWeek));
     }
 
     [Fact]
-    public void Missing_Schedule_Throws()
+    public async Task Missing_Schedule_Throws()
     {
-        var svc = new InMemoryPayScheduleService();
-        Assert.Throws<DomainException>(() => svc.GetOccurrences(Guid.NewGuid(), new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 2)));
+        var harness = new Harness();
+        await Assert.ThrowsAsync<DomainException>(async () => await harness.Service.GetOccurrencesAsync(Guid.NewGuid(), new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 2)));
+    }
+
+    private sealed class Harness
+    {
+        public Harness()
+        {
+            this.Write = new InMemoryWrite();
+            this.Read = this.Write;
+            this.Uow = new InMemoryUow();
+            this.Service = new PayScheduleService(this.Write, this.Read, this.Uow);
+        }
+
+        public PayScheduleService Service { get; }
+
+        public InMemoryWrite Write { get; }
+
+        public InMemoryWrite Read { get; }
+
+        public InMemoryUow Uow { get; }
+    }
+
+    private sealed class InMemoryWrite : IWriteRepository<PaySchedule>, IReadRepository<PaySchedule>
+    {
+        private readonly Dictionary<Guid, PaySchedule> _data = new();
+
+        public Task AddAsync(PaySchedule entity, CancellationToken cancellationToken = default)
+        {
+            this._data[entity.Id] = entity;
+            return Task.CompletedTask;
+        }
+
+        public Task<PaySchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult(this._data.TryGetValue(id, out var v) ? v : null);
+    }
+
+    private sealed class InMemoryUow : IUnitOfWork
+    {
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
     }
 }

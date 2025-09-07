@@ -5,8 +5,9 @@ namespace BudgetExperiment.Domain;
 /// </summary>
 public sealed class PaySchedule
 {
-    private PaySchedule(DateOnly anchor, RecurrenceKind recurrence)
+    private PaySchedule(Guid id, DateOnly anchor, RecurrenceKind recurrence)
     {
+        this.Id = id;
         this.Anchor = anchor;
         this.Recurrence = recurrence;
     }
@@ -27,6 +28,9 @@ public sealed class PaySchedule
         get;
     }
 
+    /// <summary>Gets the unique identifier.</summary>
+    public Guid Id { get; }
+
     /// <summary>Gets the recurrence pattern.</summary>
     public RecurrenceKind Recurrence
     {
@@ -36,12 +40,12 @@ public sealed class PaySchedule
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
     /// <returns>New <see cref="PaySchedule"/>.</returns>
-    public static PaySchedule CreateWeekly(DateOnly anchor) => new(anchor, RecurrenceKind.Weekly);
+    public static PaySchedule CreateWeekly(DateOnly anchor) => new(Guid.NewGuid(), anchor, RecurrenceKind.Weekly);
 
     /// <summary>Create a monthly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
     /// <returns>New <see cref="PaySchedule"/>.</returns>
-    public static PaySchedule CreateMonthly(DateOnly anchor) => new(anchor, RecurrenceKind.Monthly);
+    public static PaySchedule CreateMonthly(DateOnly anchor) => new(Guid.NewGuid(), anchor, RecurrenceKind.Monthly);
 
     /// <summary>
     /// Gets all occurrence dates within the inclusive range.

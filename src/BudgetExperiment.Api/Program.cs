@@ -1,6 +1,11 @@
 // <copyright file="Program.cs" company="Fortinbra">
 // Copyright (c) 2025 Fortinbra (becauseimclever.com). All rights reserved.
 
+using BudgetExperiment.Application;
+using BudgetExperiment.Infrastructure;
+
+using Microsoft.Extensions.DependencyInjection;
+
 using Scalar.AspNetCore;
 
 /// <summary>
@@ -21,9 +26,9 @@ public static class Program
         builder.Services.AddControllers();
         builder.Services.AddOpenApi();
 
-        // Application services
-        builder.Services.AddSingleton<BudgetExperiment.Application.PaySchedules.IPayScheduleService, BudgetExperiment.Application.PaySchedules.InMemoryPayScheduleService>();
-        builder.Services.AddSingleton<BudgetExperiment.Application.BillSchedules.IBillScheduleService, BudgetExperiment.Application.BillSchedules.InMemoryBillScheduleService>();
+        // Application & Infrastructure
+        builder.Services.AddApplication();
+        builder.Services.AddInfrastructure(builder.Configuration);
 
         var app = builder.Build();
 
@@ -37,34 +42,34 @@ public static class Program
         app.MapControllers();
 
         // Temporary minimal endpoints for smoke testing pay schedules.
-        app.MapPost("/api/v1/payschedules/weekly", (DateOnly anchor, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc) =>
+        app.MapPost("/api/v1/payschedules/weekly", async (DateOnly anchor, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc, CancellationToken ct) =>
             {
-                var id = svc.CreateWeekly(anchor);
+                var id = await svc.CreateWeeklyAsync(anchor, ct).ConfigureAwait(false);
                 return Results.Created($"/api/v1/payschedules/{id}", new
                 {
                     id,
                 });
             });
 
-        app.MapGet("/api/v1/payschedules/{id:guid}/occurrences", (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc) =>
+        app.MapGet("/api/v1/payschedules/{id:guid}/occurrences", async (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc, CancellationToken ct) =>
             {
-                var occ = svc.GetOccurrences(id, start, end);
+                var occ = await svc.GetOccurrencesAsync(id, start, end, ct).ConfigureAwait(false);
                 return Results.Ok(occ);
             });
 
         // Bill schedule endpoints
-        app.MapPost("/api/v1/billschedules/monthly", (string name, string currency, decimal amount, DateOnly anchor, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc) =>
+        app.MapPost("/api/v1/billschedules/monthly", async (string name, string currency, decimal amount, DateOnly anchor, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc, CancellationToken ct) =>
             {
-                var id = svc.CreateMonthly(name, BudgetExperiment.Domain.MoneyValue.Create(currency, amount), anchor);
+                var id = await svc.CreateMonthlyAsync(name, BudgetExperiment.Domain.MoneyValue.Create(currency, amount), anchor, ct).ConfigureAwait(false);
                 return Results.Created($"/api/v1/billschedules/{id}", new
                 {
                     id,
                 });
             });
 
-        app.MapGet("/api/v1/billschedules/{id:guid}/occurrences", (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc) =>
+        app.MapGet("/api/v1/billschedules/{id:guid}/occurrences", async (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc, CancellationToken ct) =>
             {
-                var occ = svc.GetOccurrences(id, start, end);
+                var occ = await svc.GetOccurrencesAsync(id, start, end, ct).ConfigureAwait(false);
                 return Results.Ok(occ);
             });
         await app.RunAsync().ConfigureAwait(false);

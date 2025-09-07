@@ -5,8 +5,9 @@ namespace BudgetExperiment.Domain;
 /// </summary>
 public sealed class BillSchedule
 {
-    private BillSchedule(string name, MoneyValue amount, DateOnly anchor, RecurrenceKind recurrence)
+    private BillSchedule(Guid id, string name, MoneyValue amount, DateOnly anchor, RecurrenceKind recurrence)
     {
+        this.Id = id;
         this.Name = name;
         this.Amount = amount;
         this.Anchor = anchor;
@@ -18,6 +19,12 @@ public sealed class BillSchedule
     {
         /// <summary>Monthly recurrence.</summary>
         Monthly,
+    }
+
+    /// <summary>Gets the unique identifier.</summary>
+    public Guid Id
+    {
+        get;
     }
 
     /// <summary>Gets the bill name.</summary>
@@ -61,7 +68,7 @@ public sealed class BillSchedule
             throw new DomainException("Bill amount cannot be negative.");
         }
 
-        return new BillSchedule(name.Trim(), amount, anchor, RecurrenceKind.Monthly);
+        return new BillSchedule(Guid.NewGuid(), name.Trim(), amount, anchor, RecurrenceKind.Monthly);
     }
 
     /// <summary>Get due dates within an inclusive range.</summary>

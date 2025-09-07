@@ -11,13 +11,15 @@ public interface IBillScheduleService
     /// <param name="name">Bill name.</param>
     /// <param name="amount">Amount.</param>
     /// <param name="anchor">First due date.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Identifier.</returns>
-    Guid CreateMonthly(string name, MoneyValue amount, DateOnly anchor);
+    Task<Guid> CreateMonthlyAsync(string name, MoneyValue amount, DateOnly anchor, CancellationToken cancellationToken = default);
 
     /// <summary>Get occurrences for bill schedule.</summary>
     /// <param name="id">Bill schedule id.</param>
     /// <param name="start">Range start.</param>
     /// <param name="end">Range end.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Due dates.</returns>
-    IEnumerable<DateOnly> GetOccurrences(Guid id, DateOnly start, DateOnly end);
+    Task<IEnumerable<DateOnly>> GetOccurrencesAsync(Guid id, DateOnly start, DateOnly end, CancellationToken cancellationToken = default);
 }
