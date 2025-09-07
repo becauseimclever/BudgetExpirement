@@ -66,6 +66,25 @@ public sealed class AdhocPaymentService
         return adhocPayments.Select(ToResponse).ToList();
     }
 
+    /// <summary>
+    /// Deletes an adhoc payment.
+    /// </summary>
+    /// <param name="id">The adhoc payment ID.</param>
+    /// <returns>True if the adhoc payment was deleted, otherwise false.</returns>
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var adhocPayment = await this._readRepository.GetByIdAsync(id);
+        if (adhocPayment == null)
+        {
+            return false;
+        }
+
+        await this._writeRepository.DeleteAsync(adhocPayment);
+        await this._unitOfWork.SaveChangesAsync();
+
+        return true;
+    }
+
     private static AdhocPaymentResponse ToResponse(AdhocPayment adhocPayment)
     {
         return new AdhocPaymentResponse(

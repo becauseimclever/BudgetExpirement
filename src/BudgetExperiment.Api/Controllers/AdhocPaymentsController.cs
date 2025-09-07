@@ -76,4 +76,18 @@ public sealed class AdhocPaymentsController : ControllerBase
         var adhocPayments = await this._service.GetByDateRangeAsync(startDate, endDate);
         return this.Ok(adhocPayments);
     }
+
+    /// <summary>
+    /// Deletes an adhoc payment.
+    /// </summary>
+    /// <param name="id">The adhoc payment ID.</param>
+    /// <returns>No content if successful.</returns>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAsync([FromRoute] Guid id)
+    {
+        var deleted = await this._service.DeleteAsync(id);
+        return deleted ? this.NoContent() : this.NotFound();
+    }
 }

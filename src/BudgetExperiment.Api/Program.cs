@@ -61,17 +61,15 @@ public partial class Program
         // Custom exception handling
         app.UseMiddleware<BudgetExperiment.Api.Middleware.ExceptionHandlingMiddleware>();
 
-        // (Temporary) ensure database exists for development/integration usage.
+        // Apply pending migrations and seed data if needed.
         using (var scope = app.Services.CreateScope())
         {
             try
             {
                 var db = scope.ServiceProvider.GetRequiredService<BudgetDbContext>();
 
-                // For development: create database and tables directly from current model
-                // This bypasses migration validation issues during rapid development
-                await db.Database.EnsureDeletedAsync().ConfigureAwait(false);
-                await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
+                // Apply any pending migrations
+                await db.Database.MigrateAsync().ConfigureAwait(false);
 
                 // Seed bi-weekly pay schedule if none exist.
                 if (!db.PaySchedules.Any())
