@@ -25,6 +25,9 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     /// <summary>Gets pay schedules set.</summary>
     public DbSet<PaySchedule> PaySchedules => this.Set<PaySchedule>();
 
+    /// <summary>Gets expenses set.</summary>
+    public DbSet<Expense> Expenses => this.Set<Expense>();
+
     /// <inheritdoc />
     public override int SaveChanges()
     {
@@ -72,6 +75,22 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             p.Property(x => x.CreatedUtc).IsRequired();
             p.Property(x => x.UpdatedUtc);
         });
+
+        modelBuilder.Entity<Expense>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Description).IsRequired().HasMaxLength(500);
+            e.OwnsOne(typeof(MoneyValue), "Amount", mv =>
+            {
+                mv.Property("Currency").HasColumnName("AmountCurrency").HasMaxLength(3).IsRequired();
+                mv.Property("Amount").HasColumnName("AmountValue").HasColumnType("numeric(18,2)").IsRequired();
+            });
+            e.Property(x => x.Date).HasConversion(new DateOnlyConverter()).IsRequired();
+            e.Property(x => x.Category).HasMaxLength(100);
+            e.Property(x => x.CreatedUtc).IsRequired();
+            e.Property(x => x.UpdatedUtc);
+            e.HasIndex(x => x.Date); // Index for date-based queries
+        });
     }
 
     private void ApplyTimestamps()
@@ -87,6 +106,10 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
                 else if (entry.Entity is PaySchedule ps)
                 {
                     ps.MarkUpdated();
+                }
+                else if (entry.Entity is Expense expense)
+                {
+                    expense.MarkUpdated();
                 }
             }
         }

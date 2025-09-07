@@ -88,6 +88,18 @@ public partial class Program
                     db.BillSchedules.Add(billSeed);
                     await db.SaveChangesAsync().ConfigureAwait(false);
                 }
+
+                // Seed expense data if none exist.
+                if (!db.Expenses.Any())
+                {
+                    var expenseSeed = BudgetExperiment.Domain.Expense.Create(
+                        "Groceries at HEB",
+                        BudgetExperiment.Domain.MoneyValue.Create("USD", 150m),
+                        new DateOnly(2025, 9, 8),
+                        "Groceries");
+                    db.Expenses.Add(expenseSeed);
+                    await db.SaveChangesAsync().ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {

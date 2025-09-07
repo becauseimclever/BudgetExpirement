@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IWriteRepository<BillSchedule>, BillScheduleRepository>();
         services.AddScoped<IReadRepository<PaySchedule>, PayScheduleRepository>();
         services.AddScoped<IWriteRepository<PaySchedule>, PayScheduleRepository>();
+        services.AddScoped<IExpenseReadRepository, ExpenseReadRepository>();
+        services.AddScoped<IExpenseWriteRepository, ExpenseWriteRepository>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<BudgetDbContext>());
         return services;
     }
