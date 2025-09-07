@@ -30,7 +30,7 @@ public sealed class ExpensesController : ControllerBase
     public async Task<ActionResult<ExpenseResponse>> CreateAsync([FromBody] CreateExpenseRequest request)
     {
         var expense = await this._expenseService.CreateAsync(request);
-        return this.CreatedAtAction(nameof(this.GetByIdAsync), new { id = expense.Id }, expense);
+        return this.Created($"/api/v1/expenses/{expense.Id}", expense);
     }
 
     /// <summary>

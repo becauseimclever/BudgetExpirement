@@ -2,7 +2,6 @@
 @page "/paycalendar"
 @inject HttpClient Http
 @inject IJSRuntime JS
-@layout CalendarLayout
 @using BudgetExperiment.Client.Api
 
 <PageTitle>Pay Calendar</PageTitle>
@@ -107,6 +106,23 @@
     <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999;" @onclick="() => showContextMenu = false"></div>
 }
 
+@* Toast notifications *@
+@if (toastMessages.Count > 0)
+{
+    <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 1200; min-width: 300px;">
+        @foreach (var toast in toastMessages)
+        {
+            <div class="toast" style="background: @(toast.IsError ? "#f8d7da" : "#d1ecf1"); color: @(toast.IsError ? "#721c24" : "#0c5460"); border: 1px solid @(toast.IsError ? "#f5c6cb" : "#bee5eb"); border-radius: 4px; padding: 12px 16px; margin-bottom: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>@(toast.IsError ? "Error" : "Success")</strong><br />
+                    @toast.Message
+                </div>
+                <button type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: inherit; margin-left: 12px;" @onclick="() => RemoveToast(toast.Id)">&times;</button>
+            </div>
+        }
+    </div>
+}
+
 @* Modal for adding expenses *@
 @if (showExpenseModal)
 {
@@ -170,6 +186,10 @@
     private decimal newExpenseAmount = 0;
     private string newExpenseCategory = string.Empty;
     private bool isSaving = false;
+    
+    // Toast notification state
+    private readonly List<ToastMessage> toastMessages = new();
+    private int nextToastId = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -488,23 +508,52 @@
                 // Close modal
                 CloseExpenseModal();
                 
+                // Show success message
+                ShowToast($"Expense '{newExpenseDescription}' added successfully!", false);
+                
                 // Refresh the current view
                 await LoadCurrentMonth();
             }
             else
             {
-                // TODO: Show error message to user
-                Console.WriteLine($"Failed to create expense: {response.StatusCode}");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast($"Failed to create expense: {response.StatusCode}. {errorContent}", true);
             }
         }
         catch (Exception ex)
         {
-            // TODO: Show error message to user
-            Console.WriteLine($"Error creating expense: {ex.Message}");
+            ShowToast($"Error creating expense: {ex.Message}", true);
         }
         finally
         {
             isSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void ShowToast(string message, bool isError)
+    {
+        var toast = new ToastMessage(nextToastId++, message, isError);
+        toastMessages.Add(toast);
+        StateHasChanged();
+        
+        // Auto-remove toast after 5 seconds
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                toastMessages.Remove(toast);
+                StateHasChanged();
+            });
+        });
+    }
+    
+    private void RemoveToast(int toastId)
+    {
+        var toast = toastMessages.FirstOrDefault(t => t.Id == toastId);
+        if (toast != null)
+        {
+            toastMessages.Remove(toast);
             StateHasChanged();
         }
     }
@@ -807,3 +856,10 @@
     }
 }
 </style>
+
+@code {
+    /// <summary>
+    /// Represents a toast notification message.
+    /// </summary>
+    private sealed record ToastMessage(int Id, string Message, bool IsError);
+}

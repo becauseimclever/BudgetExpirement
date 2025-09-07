@@ -105,6 +105,10 @@ public sealed class Expense
             throw new DomainException("Expense amount must be greater than zero.");
         }
 
+        this.Description = description.Trim();
+        this.Amount = amount;
+        this.Date = date;
+        this.Category = category?.Trim();
         this.UpdatedUtc = DateTime.UtcNow;
     }
 
