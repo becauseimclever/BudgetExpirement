@@ -3,9 +3,7 @@
 
 using BudgetExperiment.Application;
 using BudgetExperiment.Infrastructure;
-
 using Microsoft.Extensions.DependencyInjection;
-
 using Scalar.AspNetCore;
 
 /// <summary>
@@ -30,9 +28,15 @@ public static class Program
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("dev", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        });
+
         var app = builder.Build();
 
         app.UseHttpsRedirection();
+        app.UseCors("dev");
 
         // Expose OpenAPI document (AspNetCore.OpenApi)
         app.MapOpenApi();

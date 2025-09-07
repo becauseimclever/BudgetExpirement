@@ -31,13 +31,13 @@ public sealed class InMemoryBillScheduleServiceTests
             this.Service = new BillScheduleService(this.Write, this.Read, this.Uow);
         }
 
-    public BillScheduleService Service { get; }
+        public BillScheduleService Service { get; }
 
-    public InMemoryWrite Write { get; }
+        public InMemoryWrite Write { get; }
 
-    public InMemoryWrite Read { get; }
+        public InMemoryWrite Read { get; }
 
-    public InMemoryUow Uow { get; }
+        public InMemoryUow Uow { get; }
     }
 
     private sealed class InMemoryWrite : IWriteRepository<BillSchedule>, IReadRepository<BillSchedule>

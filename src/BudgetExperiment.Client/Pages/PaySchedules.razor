@@ -1,0 +1,66 @@
+@page "/payschedules"
+@inject HttpClient Http
+
+<PageTitle>Pay Schedules</PageTitle>
+
+<h3>Create Pay Schedule</h3>
+<div class="mb-3">
+    <label>Anchor Date: <input type="date" @bind-value="anchor" /></label>
+</div>
+<div class="mb-3">
+    <label>Recurrence:
+        <select @bind="recurrence">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+        </select>
+    </label>
+</div>
+<button class="btn btn-primary" @onclick="Create">Create</button>
+
+@if (createdId != Guid.Empty)
+{
+    <p>Created Id: @createdId</p>
+    <h4>Upcoming Occurrences (next 60 days)</h4>
+    @if (occurrences is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var d in occurrences)
+            {
+                <li>@d</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private DateTime anchor = DateTime.UtcNow.Date;
+    private string recurrence = "weekly";
+    private Guid createdId;
+    private List<string>? occurrences;
+
+    private async Task Create()
+    {
+        occurrences = null;
+        createdId = Guid.Empty;
+        var anchorDateOnly = DateOnly.FromDateTime(anchor);
+        string url = recurrence == "weekly" ? $"api/v1/payschedules/weekly?anchor={anchorDateOnly:yyyy-MM-dd}" : $"api/v1/payschedules/monthly?anchor={anchorDateOnly:yyyy-MM-dd}";
+        var resp = await Http.PostAsync(url, null);
+        resp.EnsureSuccessStatusCode();
+        var created = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        createdId = created.RootElement.GetProperty("id").GetGuid();
+        await LoadOccurrences();
+    }
+
+    private async Task LoadOccurrences()
+    {
+        if (createdId == Guid.Empty) return;
+        var start = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var end = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(60));
+        var occ = await Http.GetFromJsonAsync<List<string>>($"api/v1/payschedules/{createdId}/occurrences?start={start:yyyy-MM-dd}&end={end:yyyy-MM-dd}");
+        occurrences = occ ?? new();
+    }
+}
