@@ -107,6 +107,37 @@
     <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999;" @onclick="() => showContextMenu = false"></div>
 }
 
+@* Modal for adding expenses *@
+@if (showExpenseModal)
+{
+    <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1100; display: flex; justify-content: center; align-items: center;" @onclick="() => CloseExpenseModal()">
+        <div class="modal-content" style="background: white; border-radius: 8px; padding: 24px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);" @onclick:stopPropagation="true">
+            <div class="modal-header" style="margin-bottom: 20px;">
+                <h4 style="margin: 0; color: #333;">Add Expense for @expenseModalDate.ToString("MMMM d, yyyy")</h4>
+                <button type="button" class="btn-close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;" @onclick="CloseExpenseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="expenseDescription" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Description</label>
+                    <input id="expenseDescription" type="text" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="Enter expense description" @bind="newExpenseDescription" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveExpense(); })" />
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="expenseAmount" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Amount ($)</label>
+                    <input id="expenseAmount" type="number" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="0.00" step="0.01" min="0" @bind="newExpenseAmount" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveExpense(); })" />
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="expenseCategory" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Category (Optional)</label>
+                    <input id="expenseCategory" type="text" class="form-control" style="width: 100%; padding: 8px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;" placeholder="e.g., Groceries, Gas, Entertainment" @bind="newExpenseCategory" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SaveExpense(); })" />
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" style="padding: 10px 20px; border-radius: 4px; border: 2px solid #6c757d; background: transparent; color: #6c757d; cursor: pointer; font-weight: 500;" @onclick="CloseExpenseModal">Cancel</button>
+                <button type="button" class="btn btn-primary" style="padding: 10px 20px; border-radius: 4px; border: none; background: #1b6ec2; color: white; cursor: pointer; font-weight: 500;" @onclick="SaveExpense" disabled="@(isSaving || string.IsNullOrWhiteSpace(newExpenseDescription) || newExpenseAmount <= 0)">@(isSaving ? "Saving..." : "Add Expense")</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private string? selectedScheduleId;
     private List<PayScheduleItem> paySchedules = new();
@@ -131,6 +162,14 @@
     private DateOnly contextMenuDate;
     private double contextMenuX = 0;
     private double contextMenuY = 0;
+    
+    // Expense modal state
+    private bool showExpenseModal = false;
+    private DateOnly expenseModalDate;
+    private string newExpenseDescription = string.Empty;
+    private decimal newExpenseAmount = 0;
+    private string newExpenseCategory = string.Empty;
+    private bool isSaving = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -399,10 +438,75 @@
 
     private void AddExpense(DateOnly date)
     {
-        // For now, just close the context menu
-        // TODO: Implement expense creation modal/form
+        // Open the expense modal
         showContextMenu = false;
+        expenseModalDate = date;
+        showExpenseModal = true;
+        
+        // Clear previous form data
+        newExpenseDescription = string.Empty;
+        newExpenseAmount = 0;
+        newExpenseCategory = string.Empty;
+        
         StateHasChanged();
+    }
+    
+    private void CloseExpenseModal()
+    {
+        showExpenseModal = false;
+        StateHasChanged();
+    }
+    
+    private async Task SaveExpense()
+    {
+        if (string.IsNullOrWhiteSpace(newExpenseDescription) || newExpenseAmount <= 0)
+        {
+            return;
+        }
+        
+        isSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            var createRequest = new CreateExpenseRequest(
+                Description: newExpenseDescription.Trim(),
+                Currency: "USD",
+                Amount: newExpenseAmount,
+                Date: expenseModalDate,
+                Category: string.IsNullOrWhiteSpace(newExpenseCategory) ? null : newExpenseCategory.Trim()
+            );
+            
+            var response = await Http.PostAsJsonAsync("api/v1/expenses", createRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear the expense cache for the affected month to force refresh
+                var monthKey = expenseModalDate.ToString("yyyy-MM");
+                expenseCache.Remove(monthKey);
+                
+                // Close modal
+                CloseExpenseModal();
+                
+                // Refresh the current view
+                await LoadCurrentMonth();
+            }
+            else
+            {
+                // TODO: Show error message to user
+                Console.WriteLine($"Failed to create expense: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // TODO: Show error message to user
+            Console.WriteLine($"Error creating expense: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
     }
 
     private CalendarMonth BuildCalendarMonth(int year, int month)
