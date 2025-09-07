@@ -98,7 +98,9 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     private sealed class DateOnlyConverter : ValueConverter<DateOnly, DateTime>
     {
         public DateOnlyConverter()
-            : base(d => d.ToDateTime(TimeOnly.MinValue), dt => DateOnly.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc)))
+            : base(
+                d => DateTime.SpecifyKind(d.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc),
+                dt => DateOnly.FromDateTime(DateTime.SpecifyKind(dt, DateTimeKind.Utc)))
         {
         }
     }

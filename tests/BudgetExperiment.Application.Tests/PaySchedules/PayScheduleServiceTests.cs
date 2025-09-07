@@ -22,7 +22,7 @@ public sealed class PayScheduleServiceTests
         var anchor = new DateOnly(2025, 1, 3);
 
         // Act
-        var id = await svc.CreateWeeklyAsync(anchor);
+        var id = await svc.CreateWeeklyAsync(anchor, MoneyValue.Create("USD", 1000m));
 
         // Assert
         Assert.NotEqual(Guid.Empty, id);
@@ -41,7 +41,7 @@ public sealed class PayScheduleServiceTests
         var svc = new PayScheduleService(new WriteRepo(store), new ReadRepo(store), new Uow());
         var anchor = new DateOnly(2025, 2, 28);
 
-        var id = await svc.CreateMonthlyAsync(anchor);
+        var id = await svc.CreateMonthlyAsync(anchor, MoneyValue.Create("USD", 1200m));
 
         Assert.True(store.Items.ContainsKey(id));
         Assert.Equal(PaySchedule.RecurrenceKind.Monthly, store.Items[id].Recurrence);
@@ -54,7 +54,7 @@ public sealed class PayScheduleServiceTests
     {
         // Arrange
         var store = new InMemoryStore<PaySchedule>();
-        var schedule = PaySchedule.CreateWeekly(new DateOnly(2025, 1, 3));
+        var schedule = PaySchedule.CreateWeekly(new DateOnly(2025, 1, 3), MoneyValue.Create("USD", 1000m));
         store.Items.Add(schedule.Id, schedule);
         var svc = new PayScheduleService(new WriteRepo(store), new ReadRepo(store), new Uow());
 
@@ -117,7 +117,10 @@ public sealed class PayScheduleServiceTests
 
     private sealed class Uow : IUnitOfWork
     {
-        public bool Saved { get; private set; }
+        public bool Saved
+        {
+            get; private set;
+        }
 
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

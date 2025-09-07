@@ -8,12 +8,12 @@ public sealed class InMemoryPayScheduleServiceTests
     [Fact]
     public async Task Create_And_Retrieve_Weekly()
     {
-        var harness = new Harness();
-        var anchor = new DateOnly(2025, 1, 3); // Friday
-        var id = await harness.Service.CreateWeeklyAsync(anchor);
-        var occurrences = (await harness.Service.GetOccurrencesAsync(id, new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31))).ToList();
-        Assert.Contains(anchor, occurrences);
-        Assert.All(occurrences, d => Assert.Equal(DayOfWeek.Friday, d.DayOfWeek));
+    var harness = new Harness();
+    var anchor = new DateOnly(2025, 1, 3); // Friday
+    var id = await harness.Service.CreateWeeklyAsync(anchor, MoneyValue.Create("USD", 1000m));
+    var occurrences = (await harness.Service.GetOccurrencesAsync(id, new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31))).ToList();
+    Assert.Contains(anchor, occurrences);
+    Assert.All(occurrences, d => Assert.Equal(DayOfWeek.Friday, d.DayOfWeek));
     }
 
     [Fact]

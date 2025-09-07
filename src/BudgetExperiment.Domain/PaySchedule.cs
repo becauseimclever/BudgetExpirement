@@ -53,7 +53,10 @@ public sealed class PaySchedule
     }
 
     /// <summary>Gets the pay amount.</summary>
-    public MoneyValue Amount { get; private set; }
+    public MoneyValue Amount
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the recurrence pattern.</summary>
     public RecurrenceKind Recurrence
@@ -62,7 +65,10 @@ public sealed class PaySchedule
     }
 
     /// <summary>Gets custom days interval for recurrence (only when Recurrence == Custom).</summary>
-    public int? DaysInterval { get; private set; }
+    public int? DaysInterval
+    {
+        get; private set;
+    }
 
     /// <summary>Gets the UTC creation timestamp.</summary>
     public DateTime CreatedUtc
@@ -79,8 +85,6 @@ public sealed class PaySchedule
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
     /// <returns>New <see cref="PaySchedule"/>.</returns>
-    /// <summary>Create a weekly pay schedule.</summary>
-    /// <param name="anchor">First occurrence.</param>
     /// <param name="amount">Pay amount.</param>
     /// <returns>Configured schedule.</returns>
     public static PaySchedule CreateWeekly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrenceKind.Weekly, amount, null);
@@ -88,8 +92,6 @@ public sealed class PaySchedule
     /// <summary>Create a monthly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
     /// <returns>New <see cref="PaySchedule"/>.</returns>
-    /// <summary>Create a monthly pay schedule.</summary>
-    /// <param name="anchor">First occurrence.</param>
     /// <param name="amount">Pay amount.</param>
     /// <returns>Schedule.</returns>
     public static PaySchedule CreateMonthly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrenceKind.Monthly, amount, null);
@@ -181,6 +183,7 @@ public sealed class PaySchedule
         {
             yield break;
         }
+
         DateOnly first = this.Anchor;
         if (rangeStart > first)
         {
@@ -188,7 +191,8 @@ public sealed class PaySchedule
             var remainder = daysDiff % interval;
             first = remainder == 0 ? rangeStart : rangeStart.AddDays(interval - remainder);
         }
-    for (var current = first; current <= rangeEnd; current = current.AddDays(interval))
+
+        for (var current = first; current <= rangeEnd; current = current.AddDays(interval))
         {
             if (current >= rangeStart)
             {
@@ -196,7 +200,6 @@ public sealed class PaySchedule
             }
         }
     }
-
 
     private IEnumerable<DateOnly> EnumerateMonthly(DateOnly rangeStart, DateOnly rangeEnd)
     {

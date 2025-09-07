@@ -13,5 +13,8 @@ public sealed class CreateWeeklyPayScheduleRequest
     public string Currency { get; set; } = "USD";
 
     /// <summary>Gets or sets amount.</summary>
-    public decimal Amount { get; set; }
+    public decimal Amount
+    {
+        get; set;
+    }
 }

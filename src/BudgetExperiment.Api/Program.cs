@@ -5,6 +5,7 @@ using BudgetExperiment.Application;
 using BudgetExperiment.Infrastructure;
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Scalar.AspNetCore;
@@ -66,7 +67,10 @@ public partial class Program
             try
             {
                 var db = scope.ServiceProvider.GetRequiredService<BudgetDbContext>();
-                await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
+
+                // Development reset: drop and recreate schema, then apply migrations (initial migration to be added).
+                await db.Database.EnsureDeletedAsync().ConfigureAwait(false);
+                await db.Database.MigrateAsync().ConfigureAwait(false);
 
                 // Seed bi-weekly pay schedule if none exist.
                 if (!db.PaySchedules.Any())
