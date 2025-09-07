@@ -61,22 +61,31 @@ public partial class Program
         // Custom exception handling
         app.UseMiddleware<BudgetExperiment.Api.Middleware.ExceptionHandlingMiddleware>();
 
-        // (Temporary) ensure database exists for development/integration usage until migrations are introduced.
+        // (Temporary) ensure database exists for development/integration usage.
         using (var scope = app.Services.CreateScope())
         {
             try
             {
                 var db = scope.ServiceProvider.GetRequiredService<BudgetDbContext>();
 
-                // Development reset: drop and recreate schema, then apply migrations (initial migration to be added).
+                // For development: create database and tables directly from current model
+                // This bypasses migration validation issues during rapid development
                 await db.Database.EnsureDeletedAsync().ConfigureAwait(false);
-                await db.Database.MigrateAsync().ConfigureAwait(false);
+                await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
 
                 // Seed bi-weekly pay schedule if none exist.
                 if (!db.PaySchedules.Any())
                 {
                     var seed = BudgetExperiment.Domain.PaySchedule.CreateBiWeekly(new DateOnly(2025, 8, 29), BudgetExperiment.Domain.MoneyValue.Create("USD", 1500m));
                     db.PaySchedules.Add(seed);
+                    await db.SaveChangesAsync().ConfigureAwait(false);
+                }
+
+                // Seed monthly bill schedule if none exist.
+                if (!db.BillSchedules.Any())
+                {
+                    var billSeed = BudgetExperiment.Domain.BillSchedule.CreateMonthly("Rent", BudgetExperiment.Domain.MoneyValue.Create("USD", 2400m), new DateOnly(2025, 9, 4));
+                    db.BillSchedules.Add(billSeed);
                     await db.SaveChangesAsync().ConfigureAwait(false);
                 }
             }

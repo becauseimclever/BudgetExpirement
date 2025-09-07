@@ -1,91 +1,115 @@
 @page "/paycalendar"
 @inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Pay Calendar</PageTitle>
 
-<h3>Pay Calendar</h3>
+<div class="pay-calendar-container" @onwheel="OnWheel">
+    <div class="calendar-header">
+        <h3>Pay & Bills Calendar</h3>
+        <div class="calendar-controls">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateMonth(-1)">← Previous</button>
+            <h4 class="month-title">@currentMonth.MonthName @currentMonth.Year</h4>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => NavigateMonth(1)">Next →</button>
+        </div>
+        <div class="schedule-selector">
+            <label>Pay Schedule:
+                <select value="@selectedScheduleId" @onchange="OnScheduleChanged">
+                    @foreach (var ps in paySchedules)
+                    {
+                        <option value="@ps.Id">@ps.Recurrence @ps.Anchor (@ps.Currency @ps.Amount)</option>
+                    }
+                </select>
+            </label>
+        </div>
+    </div>
 
-<div class="mb-3">
-    <label>Start Month: <input type="month" value="@monthInput" @onchange="OnMonthChanged" /></label>
-</div>
-<div class="mb-3">
-    <label>Show Months: <input type="number" min="1" max="12" @bind-value="monthsToShow" /></label>
-</div>
-<div class="mb-3">
-    <label>Select Pay Schedule:
-        <select @bind="selectedScheduleId">
-            <option value="">-- choose --</option>
-            @foreach (var ps in paySchedules)
-            {
-                <option value="@ps.Id">@ps.Recurrence @ps.Anchor (@ps.Currency @ps.Amount)</option>
-            }
-        </select>
-    </label>
-</div>
-<button class="btn btn-primary" @onclick="LoadOccurrences" disabled="@(string.IsNullOrEmpty(selectedScheduleId))">Load</button>
-
-@if (calendarMonths.Count > 0)
-{
-    <div class="calendar-grid">
-        @foreach (var month in calendarMonths)
-        {
-            <div class="calendar-month">
-                <h5>@month.MonthName @month.Year</h5>
-                <table class="table table-sm table-bordered calendar-table">
-                    <thead>
-                        <tr>
-                            @foreach (var wd in weekDayHeaders)
-                            {
-                                <th>@wd</th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var week in month.Weeks)
+    @if (currentMonth.Year > 1)
+    {
+        <div class="calendar-month-full">
+            <table class="table table-bordered calendar-table-full">
+                <thead>
+                    <tr class="calendar-header-row">
+                        @foreach (var wd in weekDayHeaders)
                         {
-                            <tr>
-                                @foreach (var day in week)
+                            <th>@wd</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var week in currentMonth.Weeks)
+                    {
+                        <tr>
+                            @foreach (var day in week)
+                            {
+                                if (day == DateOnly.MinValue)
                                 {
-                                    if (day == DateOnly.MinValue)
-                                    {
-                                        <td class="empty"></td>
-                                    }
-                                    else
-                                    {
-                                        var hasPay = occurrenceSet.Contains(day);
-                                        <td class="@(hasPay ? "pay-day" : "")">
-                                            <div class="day-number">@day.Day</div>
+                                    <td class="empty-day"></td>
+                                }
+                                else
+                                {
+                                    var hasPay = payOccurrenceCache.ContainsKey(currentMonthKey) && payOccurrenceCache[currentMonthKey].Contains(day);
+                                    var hasBill = billOccurrenceCache.ContainsKey(currentMonthKey) && billOccurrenceCache[currentMonthKey].Contains(day);
+                                    var cssClass = "calendar-day";
+                                    if (hasPay && hasBill) cssClass += " pay-day bill-day both-day";
+                                    else if (hasPay) cssClass += " pay-day";
+                                    else if (hasBill) cssClass += " bill-day";
+                                    if (day == DateOnly.FromDateTime(DateTime.Today)) cssClass += " today";
+                                    
+                                    <td class="@cssClass">
+                                        <div class="day-number">@day.Day</div>
+                                        <div class="day-events">
                                             @if (hasPay)
                                             {
-                                                <div class="pay-amount">$@selectedAmount</div>
+                                                <div class="pay-amount">+$@selectedAmount.ToString("N0")</div>
                                             }
-                                        </td>
-                                    }
+                                            @if (hasBill)
+                                            {
+                                                @foreach (var bill in GetBillsForDay(day))
+                                                {
+                                                    <div class="bill-amount">-$@bill.Amount.ToString("N0")</div>
+                                                }
+                                            }
+                                        </div>
+                                    </td>
                                 }
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </div>
-}
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
 @code {
     private string? selectedScheduleId;
     private List<PayScheduleItem> paySchedules = new();
-    private string monthInput = DateTime.UtcNow.ToString("yyyy-MM");
-    private int monthsToShow = 1;
-    private HashSet<DateOnly> occurrenceSet = new();
+    private List<BillScheduleItem> billSchedules = new();
+    private CalendarMonth currentMonth = new();
+    private string currentMonthKey = string.Empty;
     private decimal selectedAmount;
+    private DateTime wheelDebounceTime = DateTime.MinValue;
 
-    private readonly string[] weekDayHeaders = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    private readonly string[] weekDayHeaders = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
-    private readonly List<CalendarMonth> calendarMonths = new();
+    // Cache for storing occurrences by month key (yyyy-MM format)
+    private readonly Dictionary<string, HashSet<DateOnly>> payOccurrenceCache = new();
+    private readonly Dictionary<string, HashSet<DateOnly>> billOccurrenceCache = new();
+    private readonly Dictionary<string, List<BillScheduleItem>> billDetailsCache = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadPaySchedules();
+        await LoadBillSchedules();
+        
+        // Auto-select first schedule and load current month
+        if (paySchedules.Count > 0)
+        {
+            selectedScheduleId = paySchedules[0].Id.ToString();
+            selectedAmount = paySchedules[0].Amount;
+            await LoadCurrentMonth();
+        }
     }
 
     private async Task LoadPaySchedules()
@@ -97,42 +121,175 @@
         }
     }
 
-    private async Task LoadOccurrences()
+    private async Task LoadBillSchedules()
     {
-        occurrenceSet.Clear();
-        calendarMonths.Clear();
+        var result = await Http.GetFromJsonAsync<PagedResult<BillScheduleItem>>("api/v1/billschedules?page=1&pageSize=100");
+        if (result?.Items != null)
+        {
+            billSchedules = result.Items.ToList();
+        }
+    }
+
+    private async Task OnScheduleChanged(ChangeEventArgs e)
+    {
+        selectedScheduleId = e.Value?.ToString();
+        if (string.IsNullOrEmpty(selectedScheduleId)) return;
+        
+        var schedule = paySchedules.FirstOrDefault(p => p.Id.ToString() == selectedScheduleId);
+        selectedAmount = schedule?.Amount ?? 0m;
+        
+        // Clear pay cache and reload
+        payOccurrenceCache.Clear();
+        await LoadCurrentMonth();
+    }
+
+    private async Task LoadCurrentMonth()
+    {
+        var now = DateTime.Now;
+        currentMonth = BuildCalendarMonth(now.Year, now.Month);
+        currentMonthKey = $"{now.Year:D4}-{now.Month:D2}";
+        
+        // Pre-cache current, previous, and next months for both pay and bills
+        await Task.WhenAll(
+            CachePayOccurrences(now.Year, now.Month - 1),
+            CachePayOccurrences(now.Year, now.Month),
+            CachePayOccurrences(now.Year, now.Month + 1),
+            CacheBillOccurrences(now.Year, now.Month - 1),
+            CacheBillOccurrences(now.Year, now.Month),
+            CacheBillOccurrences(now.Year, now.Month + 1)
+        );
+        
+        StateHasChanged();
+    }
+
+    private async Task NavigateMonth(int direction)
+    {
+        var currentDate = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+        var newDate = currentDate.AddMonths(direction);
+        
+        currentMonth = BuildCalendarMonth(newDate.Year, newDate.Month);
+        currentMonthKey = $"{newDate.Year:D4}-{newDate.Month:D2}";
+        
+        // Pre-cache surrounding months
+        var prevMonth = newDate.AddMonths(-1);
+        var nextMonth = newDate.AddMonths(1);
+        
+        await Task.WhenAll(
+            CachePayOccurrences(prevMonth.Year, prevMonth.Month),
+            CachePayOccurrences(newDate.Year, newDate.Month),
+            CachePayOccurrences(nextMonth.Year, nextMonth.Month),
+            CacheBillOccurrences(prevMonth.Year, prevMonth.Month),
+            CacheBillOccurrences(newDate.Year, newDate.Month),
+            CacheBillOccurrences(nextMonth.Year, nextMonth.Month)
+        );
+        
+        StateHasChanged();
+    }
+
+    private async Task OnWheel(WheelEventArgs e)
+    {
+        // Debounce wheel events
+        var now = DateTime.Now;
+        if (now - wheelDebounceTime < TimeSpan.FromMilliseconds(300)) return;
+        wheelDebounceTime = now;
+
+        if (Math.Abs(e.DeltaY) > 50) // Only respond to significant wheel movements
+        {
+            await NavigateMonth(e.DeltaY > 0 ? 1 : -1);
+        }
+    }
+
+    private async Task CachePayOccurrences(int year, int month)
+    {
         if (string.IsNullOrEmpty(selectedScheduleId)) return;
         if (!Guid.TryParse(selectedScheduleId, out var id)) return;
 
-    var startMonth = DateTime.Parse(monthInput + "-01");
-        var start = DateOnly.FromDateTime(startMonth);
-        var end = DateOnly.FromDateTime(startMonth.AddMonths(monthsToShow).AddDays(-1));
+        var monthKey = $"{year:D4}-{month:D2}";
+        if (payOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
 
-        var occ = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/payschedules/{id}/occurrences?start={start:yyyy-MM-dd}&end={end:yyyy-MM-dd}");
-        if (occ != null)
+        // Adjust for invalid months
+        var adjustedDate = new DateTime(year, month, 1);
+        if (month < 1) 
         {
-            occurrenceSet = occ.ToHashSet();
+            adjustedDate = new DateTime(year - 1, 12, 1);
+            monthKey = $"{year - 1:D4}-12";
+        }
+        else if (month > 12)
+        {
+            adjustedDate = new DateTime(year + 1, 1, 1);
+            monthKey = $"{year + 1:D4}-01";
         }
 
-        var schedule = paySchedules.FirstOrDefault(p => p.Id == id);
-        selectedAmount = schedule?.Amount ?? 0m;
+        var startDate = DateOnly.FromDateTime(adjustedDate);
+        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
 
-        BuildCalendarMonths(startMonth.Year, startMonth.Month, monthsToShow);
-    }
-
-    private Task OnMonthChanged(ChangeEventArgs e)
-    {
-        monthInput = e.Value?.ToString() ?? DateTime.UtcNow.ToString("yyyy-MM");
-        return Task.CompletedTask;
-    }
-
-    private void BuildCalendarMonths(int year, int month, int count)
-    {
-        for (int i = 0; i < count; i++)
+        try
         {
-            var dt = new DateTime(year, month, 1).AddMonths(i);
-            calendarMonths.Add(BuildCalendarMonth(dt.Year, dt.Month));
+            var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/payschedules/{id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
+            payOccurrenceCache[monthKey] = occurrences?.ToHashSet() ?? new HashSet<DateOnly>();
         }
+        catch
+        {
+            payOccurrenceCache[monthKey] = new HashSet<DateOnly>();
+        }
+    }
+
+    private async Task CacheBillOccurrences(int year, int month)
+    {
+        var monthKey = $"{year:D4}-{month:D2}";
+        if (billOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
+
+        // Adjust for invalid months
+        var adjustedDate = new DateTime(year, month, 1);
+        if (month < 1) 
+        {
+            adjustedDate = new DateTime(year - 1, 12, 1);
+            monthKey = $"{year - 1:D4}-12";
+        }
+        else if (month > 12)
+        {
+            adjustedDate = new DateTime(year + 1, 1, 1);
+            monthKey = $"{year + 1:D4}-01";
+        }
+
+        var startDate = DateOnly.FromDateTime(adjustedDate);
+        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
+
+        var allBillOccurrences = new HashSet<DateOnly>();
+        var billDetails = new List<BillScheduleItem>();
+
+        // Get occurrences for all bill schedules
+        foreach (var bill in billSchedules)
+        {
+            try
+            {
+                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/billschedules/{bill.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
+                if (occurrences != null)
+                {
+                    foreach (var occurrence in occurrences)
+                    {
+                        allBillOccurrences.Add(occurrence);
+                        billDetails.Add(bill);
+                    }
+                }
+            }
+            catch
+            {
+                // Skip this bill if error occurs
+            }
+        }
+
+        billOccurrenceCache[monthKey] = allBillOccurrences;
+        billDetailsCache[monthKey] = billDetails;
+    }
+
+    private List<BillScheduleItem> GetBillsForDay(DateOnly day)
+    {
+        if (!billDetailsCache.ContainsKey(currentMonthKey)) return new List<BillScheduleItem>();
+        
+        return billSchedules.Where(bill => 
+            billOccurrenceCache.ContainsKey(currentMonthKey) && 
+            billOccurrenceCache[currentMonthKey].Contains(day)).ToList();
     }
 
     private CalendarMonth BuildCalendarMonth(int year, int month)
@@ -142,7 +299,12 @@
         var offset = (int)firstDay.DayOfWeek; // Sunday=0
         var weeks = new List<List<DateOnly>>();
         var currentWeek = new List<DateOnly>();
-        for (int i = 0; i < offset; i++) currentWeek.Add(DateOnly.MinValue);
+        
+        // Add empty cells for days before month start
+        for (int i = 0; i < offset; i++) 
+            currentWeek.Add(DateOnly.MinValue);
+        
+        // Add month days
         for (int day = 1; day <= daysInMonth; day++)
         {
             currentWeek.Add(new DateOnly(year, month, day));
@@ -152,11 +314,15 @@
                 currentWeek = new List<DateOnly>();
             }
         }
+        
+        // Complete last week with empty cells
         if (currentWeek.Count > 0)
         {
-            while (currentWeek.Count < 7) currentWeek.Add(DateOnly.MinValue);
+            while (currentWeek.Count < 7) 
+                currentWeek.Add(DateOnly.MinValue);
             weeks.Add(currentWeek);
         }
+        
         return new CalendarMonth
         {
             Year = year,
@@ -176,7 +342,10 @@
 
     private sealed record PayScheduleItem(Guid Id, DateOnly Anchor, string Currency, decimal Amount, int? DaysInterval, DateTime CreatedUtc, DateTime? UpdatedUtc, RecurrenceKind Recurrence);
 
+    private sealed record BillScheduleItem(Guid Id, string Name, string Currency, decimal Amount, DateOnly Anchor, BillRecurrenceKind Recurrence, DateTime CreatedUtc, DateTime? UpdatedUtc);
+
     private enum RecurrenceKind { Weekly, Monthly, BiWeekly, Custom }
+    private enum BillRecurrenceKind { Monthly }
 
     private sealed class PagedResult<TItem>
     {
@@ -185,16 +354,210 @@
         public int PageSize { get; set; }
         public long TotalCount { get; set; }
     }
+}<style>
+.pay-calendar-container {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
-<style>
-.calendar-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
-.calendar-month { border: 1px solid #ccc; padding: .5rem; width: 260px; }
-.calendar-table { width: 100%; table-layout: fixed; }
-.calendar-table th { text-align: center; font-weight: 600; }
-.calendar-table td { height: 48px; vertical-align: top; padding: 2px; font-size: 0.8rem; position: relative; }
-.calendar-table td.pay-day { background: #e0f7ec; border: 2px solid #1b8f4d; }
-.calendar-table td .day-number { font-weight: 600; }
-.calendar-table td .pay-amount { position: absolute; bottom: 2px; right: 4px; font-size: 0.65rem; background: #1b8f4d; color: white; padding: 2px 4px; border-radius: 3px; }
-.calendar-table td.empty { background: #f8f8f8; }
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+}
+
+.calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.month-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    min-width: 200px;
+    text-align: center;
+}
+
+.schedule-selector select {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.calendar-month-full {
+    width: 100%;
+    height: calc(100vh - 120px);
+    overflow: hidden;
+}
+
+.calendar-table-full {
+    width: 100%;
+    height: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.calendar-header-row th {
+    background: #f8f9fa;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 1rem 0.5rem;
+    border: 1px solid #dee2e6;
+    color: #495057;
+}
+
+.calendar-day {
+    height: calc((100vh - 200px) / 6);
+    min-height: 80px;
+    vertical-align: top;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    position: relative;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+    background: #f8f9fa;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.calendar-day.pay-day {
+    background: #e8f5e8;
+    border: 2px solid #4caf50;
+}
+
+.calendar-day.bill-day {
+    background: #ffeaa7;
+    border: 2px solid #fdcb6e;
+}
+
+.calendar-day.both-day {
+    background: linear-gradient(135deg, #e8f5e8 50%, #ffeaa7 50%);
+    border: 2px solid #6c5ce7;
+}
+
+.calendar-day.pay-day.today {
+    background: #c8e6c9;
+    border: 2px solid #2e7d32;
+}
+
+.calendar-day.bill-day.today {
+    background: #ffe082;
+    border: 2px solid #f57f17;
+}
+
+.calendar-day.both-day.today {
+    background: linear-gradient(135deg, #c8e6c9 50%, #ffe082 50%);
+    border: 2px solid #4527a0;
+}
+
+.empty-day {
+    height: calc((100vh - 200px) / 6);
+    min-height: 80px;
+    background: #f8f8f8;
+    border: 1px solid #dee2e6;
+}
+
+.day-number {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.day-events {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: flex-end;
+}
+
+.pay-amount {
+    background: #4caf50;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bill-amount {
+    background: #f44336;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+    background: transparent;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: white;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .calendar-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .calendar-controls {
+        order: 1;
+    }
+    
+    .schedule-selector {
+        order: 2;
+    }
+    
+    .month-title {
+        font-size: 1.25rem;
+        min-width: auto;
+    }
+    
+    .calendar-day {
+        min-height: 60px;
+        padding: 0.25rem;
+    }
+    
+    .day-number {
+        font-size: 1rem;
+    }
+    
+    .pay-amount {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
 </style>
