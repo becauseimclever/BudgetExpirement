@@ -4,7 +4,7 @@
 
     using Microsoft.EntityFrameworkCore.Migrations;
 
-    #nullable disable
+#nullable disable
 
     /// <inheritdoc />
     public partial class AddTimestamps : Migration

@@ -11,7 +11,9 @@ public sealed record BillScheduleDto(
     string Currency,
     decimal Amount,
     DateOnly Anchor,
-    BillSchedule.RecurrenceKind Recurrence)
+    BillSchedule.RecurrenceKind Recurrence,
+    DateTime CreatedUtc,
+    DateTime? UpdatedUtc)
 {
     /// <summary>Create DTO from domain entity.</summary>
     /// <param name="entity">Domain entity.</param>
@@ -22,5 +24,7 @@ public sealed record BillScheduleDto(
         entity.Amount.Currency,
         entity.Amount.Amount,
         entity.Anchor,
-        entity.Recurrence);
+        entity.Recurrence,
+        entity.CreatedUtc,
+        entity.UpdatedUtc);
 }

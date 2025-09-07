@@ -49,37 +49,8 @@ public static class Program
         app.MapControllers();
         app.MapHealthChecks("/health");
 
-        // Temporary minimal endpoints for smoke testing pay schedules.
-        app.MapPost("/api/v1/payschedules/weekly", async (DateOnly anchor, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc, CancellationToken ct) =>
-            {
-                var id = await svc.CreateWeeklyAsync(anchor, ct).ConfigureAwait(false);
-                return Results.Created($"/api/v1/payschedules/{id}", new
-                {
-                    id,
-                });
-            });
-
-        app.MapGet("/api/v1/payschedules/{id:guid}/occurrences", async (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.PaySchedules.IPayScheduleService svc, CancellationToken ct) =>
-            {
-                var occ = await svc.GetOccurrencesAsync(id, start, end, ct).ConfigureAwait(false);
-                return Results.Ok(occ);
-            });
-
-        // Bill schedule endpoints
-        app.MapPost("/api/v1/billschedules/monthly", async (string name, string currency, decimal amount, DateOnly anchor, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc, CancellationToken ct) =>
-            {
-                var id = await svc.CreateMonthlyAsync(name, BudgetExperiment.Domain.MoneyValue.Create(currency, amount), anchor, ct).ConfigureAwait(false);
-                return Results.Created($"/api/v1/billschedules/{id}", new
-                {
-                    id,
-                });
-            });
-
-        app.MapGet("/api/v1/billschedules/{id:guid}/occurrences", async (Guid id, DateOnly start, DateOnly end, BudgetExperiment.Application.BillSchedules.IBillScheduleService svc, CancellationToken ct) =>
-            {
-                var occ = await svc.GetOccurrencesAsync(id, start, end, ct).ConfigureAwait(false);
-                return Results.Ok(occ);
-            });
+        // Custom exception handling
+        app.UseMiddleware<BudgetExperiment.Api.Middleware.ExceptionHandlingMiddleware>();
         await app.RunAsync().ConfigureAwait(false);
     }
 }
