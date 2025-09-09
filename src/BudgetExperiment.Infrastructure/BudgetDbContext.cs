@@ -60,6 +60,7 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             });
             b.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
             b.Property(x => x.Recurrence).IsRequired();
+            b.Property(x => x.DaysInterval);
             b.Property(x => x.CreatedUtc).IsRequired();
             b.Property(x => x.UpdatedUtc);
         });
