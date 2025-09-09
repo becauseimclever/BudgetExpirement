@@ -59,8 +59,10 @@
                             var isToday = day == DateOnly.FromDateTime(DateTime.Today);
                             var isCurrentMonth = day.Month == currentMonth.Month;
                             var paySchedulesForDay = GetPaySchedulesForDay(day);
+                            var billSchedulesForDay = GetBillSchedulesForDay(day);
+                            var hasEvents = paySchedulesForDay.Any() || billSchedulesForDay.Any();
                             
-                            <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, paySchedulesForDay.Any())">
+                            <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)">
                                 <div style="height: 100%; padding: 8px; position: relative;">
                                     <FluentLabel Typo="Typography.Body" 
                                                  Style="@GetDayNumberStyle(isToday, isCurrentMonth)">
@@ -86,6 +88,29 @@
                                                                  Class="pay-amount-label"
                                                                  Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
                                                         +$@paySchedule.Amount.ToString("N0")
+                                                    </FluentLabel>
+                                                </FluentStack>
+                                            </FluentCard>
+                                        }
+                                        
+                                        <!-- Bill schedule badges -->
+                                        @foreach (var billSchedule in billSchedulesForDay)
+                                        {
+                                            <FluentCard Class="bill-schedule-card" 
+                                                        Title="@GetBillScheduleTooltip(billSchedule)"
+                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto;">
+                                                <FluentStack Orientation="Orientation.Vertical" 
+                                                             VerticalGap="1" 
+                                                             Style="align-items: flex-end;">
+                                                    <FluentLabel Typo="Typography.Body" 
+                                                                 Class="bill-name-label"
+                                                                 Style="line-height: 1; margin: 0; font-size: 9px;">
+                                                        @billSchedule.Name
+                                                    </FluentLabel>
+                                                    <FluentLabel Typo="Typography.Body" 
+                                                                 Class="bill-amount-label"
+                                                                 Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
+                                                        -$@billSchedule.Amount.ToString("N0")
                                                     </FluentLabel>
                                                 </FluentStack>
                                             </FluentCard>
@@ -177,16 +202,16 @@
         opacity: 0.6;
     }
     
-    .calendar-cell.pay-day {
-        border-left: calc(var(--stroke-width) * 4) solid var(--palette-green-foreground-1);
+    .calendar-cell.event-day {
+        border-left: calc(var(--stroke-width) * 4) solid var(--palette-blue-foreground-1);
     }
     
-    .calendar-cell.pay-day:not(.today) {
-        background-color: var(--palette-green-tint-60);
+    .calendar-cell.event-day:not(.today) {
+        background-color: var(--palette-blue-tint-60);
     }
     
-    .calendar-cell.pay-day:hover:not(.today) {
-        background-color: var(--palette-green-tint-50);
+    .calendar-cell.event-day:hover:not(.today) {
+        background-color: var(--palette-blue-tint-50);
     }
     
     .day-events {
@@ -210,6 +235,16 @@
         flex-shrink: 1 !important;
     }
 
+    .bill-schedule-card {
+        background-color: var(--palette-red-background-1) !important;
+        color: var(--palette-red-foreground-1) !important;
+        border-color: var(--palette-red-border-1) !important;
+        box-shadow: var(--elevation-shadow-tooltip) !important;
+        font-size: var(--type-ramp-minus-2-font-size) !important;
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+    }
+
     .pay-name-label {
         color: var(--palette-green-foreground-2) !important;
         white-space: nowrap;
@@ -221,6 +256,19 @@
 
     .pay-amount-label {
         color: var(--palette-green-foreground-1) !important;
+    }
+
+    .bill-name-label {
+        color: var(--palette-red-foreground-2) !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        display: block;
+    }
+
+    .bill-amount-label {
+        color: var(--palette-red-foreground-1) !important;
     }
     
     @@media (max-width: 768px) {
@@ -246,11 +294,24 @@
             padding: var(--design-unit-1) !important;
         }
 
+        .bill-schedule-card {
+            font-size: var(--type-ramp-minus-3-font-size) !important;
+            padding: var(--design-unit-1) !important;
+        }
+
         .pay-name-label {
             font-size: var(--type-ramp-minus-3-font-size) !important;
         }
 
         .pay-amount-label {
+            font-size: var(--type-ramp-minus-2-font-size) !important;
+        }
+
+        .bill-name-label {
+            font-size: var(--type-ramp-minus-3-font-size) !important;
+        }
+
+        .bill-amount-label {
             font-size: var(--type-ramp-minus-2-font-size) !important;
         }
     }
@@ -263,11 +324,17 @@
     // Pay schedule data
     private List<PayScheduleItem> paySchedules = new();
     private Dictionary<string, Dictionary<DateOnly, List<PayScheduleItem>>> payOccurrenceCache = new();
+    
+    // Bill schedule data
+    private List<BillScheduleItem> billSchedules = new();
+    private Dictionary<string, Dictionary<DateOnly, List<BillScheduleItem>>> billOccurrenceCache = new();
+    
     private string currentMonthKey = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadPaySchedules();
+        await LoadBillSchedules();
         await LoadCurrentMonth();
     }
 
@@ -287,6 +354,22 @@
         }
     }
 
+    private async Task LoadBillSchedules()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<BillScheduleItem>>("api/v1/billschedules?page=1&pageSize=100");
+            if (result?.Items != null)
+            {
+                billSchedules = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading bill schedules: {ex.Message}");
+        }
+    }
+
     private async Task LoadCurrentMonth()
     {
         var now = DateTime.Now;
@@ -295,6 +378,7 @@
         
         // Cache pay occurrences for current month
         await CachePayOccurrences(now.Year, now.Month);
+        await CacheBillOccurrences(now.Year, now.Month);
         StateHasChanged();
     }
 
@@ -308,6 +392,7 @@
         
         // Cache pay occurrences for new month
         await CachePayOccurrences(newDate.Year, newDate.Month);
+        await CacheBillOccurrences(newDate.Year, newDate.Month);
         StateHasChanged();
     }
 
@@ -360,6 +445,55 @@
         payOccurrenceCache[monthKey] = monthOccurrences;
     }
 
+    private async Task CacheBillOccurrences(int year, int month)
+    {
+        var monthKey = $"{year:D4}-{month:D2}";
+        if (billOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
+
+        // Adjust for invalid months
+        var adjustedDate = new DateTime(year, month, 1);
+        if (month < 1)
+        {
+            adjustedDate = new DateTime(year - 1, 12, 1);
+            monthKey = $"{year - 1:D4}-12";
+        }
+        else if (month > 12)
+        {
+            adjustedDate = new DateTime(year + 1, 1, 1);
+            monthKey = $"{year + 1:D4}-01";
+        }
+
+        var startDate = DateOnly.FromDateTime(adjustedDate);
+        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
+
+        var monthOccurrences = new Dictionary<DateOnly, List<BillScheduleItem>>();
+
+        foreach (var billSchedule in billSchedules)
+        {
+            try
+            {
+                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/billschedules/{billSchedule.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
+                if (occurrences != null)
+                {
+                    foreach (var occurrence in occurrences)
+                    {
+                        if (!monthOccurrences.ContainsKey(occurrence))
+                        {
+                            monthOccurrences[occurrence] = new List<BillScheduleItem>();
+                        }
+                        monthOccurrences[occurrence].Add(billSchedule);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading occurrences for bill schedule {billSchedule.Id}: {ex.Message}");
+            }
+        }
+
+        billOccurrenceCache[monthKey] = monthOccurrences;
+    }
+
     private List<PayScheduleItem> GetPaySchedulesForDay(DateOnly day)
     {
         if (!payOccurrenceCache.ContainsKey(currentMonthKey))
@@ -367,6 +501,15 @@
 
         var monthOccurrences = payOccurrenceCache[currentMonthKey];
         return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<PayScheduleItem>();
+    }
+
+    private List<BillScheduleItem> GetBillSchedulesForDay(DateOnly day)
+    {
+        if (!billOccurrenceCache.ContainsKey(currentMonthKey))
+            return new List<BillScheduleItem>();
+
+        var monthOccurrences = billOccurrenceCache[currentMonthKey];
+        return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<BillScheduleItem>();
     }
 
     private string GetPayScheduleName(PayScheduleItem paySchedule)
@@ -380,7 +523,19 @@
         return $"{paySchedule.Recurrence} pay of {paySchedule.Currency} ${paySchedule.Amount:N2} (Anchor: {paySchedule.Anchor:yyyy-MM-dd})";
     }
 
-    private string GetDayCssClass(DateOnly day, bool isToday, bool isCurrentMonth, bool hasPay)
+    private string GetBillScheduleTooltip(BillScheduleItem billSchedule)
+    {
+        var recurrenceText = billSchedule.Recurrence switch
+        {
+            0 => "Monthly",
+            1 => "Weekly", 
+            2 => "BiWeekly",
+            _ => "Custom"
+        };
+        return $"{recurrenceText} bill: {billSchedule.Name} - {billSchedule.Currency} ${billSchedule.Amount:N2} (Anchor: {billSchedule.Anchor:yyyy-MM-dd})";
+    }
+
+    private string GetDayCssClass(DateOnly day, bool isToday, bool isCurrentMonth, bool hasEvents)
     {
         var classes = new List<string> { "calendar-day" };
         
@@ -388,8 +543,8 @@
             classes.Add("today");
         if (!isCurrentMonth) 
             classes.Add("other-month");
-        if (hasPay)
-            classes.Add("pay-day");
+        if (hasEvents)
+            classes.Add("event-day");
         
         return string.Join(" ", classes);
     }
@@ -478,6 +633,8 @@
 
     // Data Models
     private sealed record PayScheduleItem(Guid Id, DateOnly Anchor, string Currency, decimal Amount, int? DaysInterval, DateTime CreatedUtc, DateTime? UpdatedUtc, RecurrenceKind Recurrence);
+    
+    private sealed record BillScheduleItem(Guid Id, string Name, DateOnly Anchor, string Currency, decimal Amount, int Recurrence, DateTime CreatedUtc, DateTime? UpdatedUtc);
     
     private enum RecurrenceKind { Weekly, Monthly, BiWeekly, Custom }
 

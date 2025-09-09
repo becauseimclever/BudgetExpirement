@@ -34,6 +34,25 @@ public sealed class BillScheduleService : IBillScheduleService
     }
 
     /// <inheritdoc />
+    public async Task<Guid> CreateAsync(string name, MoneyValue amount, DateOnly anchor, BillSchedule.RecurrenceKind recurrence, CancellationToken cancellationToken = default)
+    {
+        var schedule = recurrence switch
+        {
+            BillSchedule.RecurrenceKind.Weekly => BillSchedule.CreateWeekly(name, amount, anchor),
+            BillSchedule.RecurrenceKind.BiWeekly => BillSchedule.CreateBiWeekly(name, amount, anchor),
+            BillSchedule.RecurrenceKind.Monthly => BillSchedule.CreateMonthly(name, amount, anchor),
+            BillSchedule.RecurrenceKind.Quarterly => BillSchedule.CreateQuarterly(name, amount, anchor),
+            BillSchedule.RecurrenceKind.SemiAnnual => BillSchedule.CreateSemiAnnual(name, amount, anchor),
+            BillSchedule.RecurrenceKind.Annual => BillSchedule.CreateAnnual(name, amount, anchor),
+            _ => throw new DomainException($"Unsupported recurrence kind: {recurrence}"),
+        };
+
+        await this._write.AddAsync(schedule, cancellationToken).ConfigureAwait(false);
+        await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return schedule.Id;
+    }
+
+    /// <inheritdoc />
     public async Task<IEnumerable<DateOnly>> GetOccurrencesAsync(Guid id, DateOnly start, DateOnly end, CancellationToken cancellationToken = default)
     {
         var schedule = await this._read.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
@@ -69,6 +88,25 @@ public sealed class BillScheduleService : IBillScheduleService
         var entities = await this._read.ListAsync(skip, pageSize, cancellationToken).ConfigureAwait(false);
         var total = await this._read.CountAsync(cancellationToken).ConfigureAwait(false);
         return (entities.Select(BillScheduleDto.FromEntity).ToList(), total);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdateAsync(Guid id, string name, MoneyValue amount, DateOnly anchor, BillSchedule.RecurrenceKind recurrence, CancellationToken cancellationToken = default)
+    {
+        var schedule = await this._read.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (schedule is null)
+        {
+            return false;
+        }
+
+        // Update the entity properties
+        schedule.UpdateName(name);
+        schedule.UpdateAmount(amount);
+        schedule.UpdateAnchor(anchor);
+        schedule.UpdateRecurrence(recurrence);
+
+        await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     /// <inheritdoc />

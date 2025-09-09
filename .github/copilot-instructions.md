@@ -216,3 +216,12 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 - Do NOT hand-edit `<ItemGroup><PackageReference .../></ItemGroup>` blocks unless performing a mechanical conflict resolution that cannot be expressed via CLI (rare—document justification if needed).
 - When removing a package: `dotnet remove <csprojPath> package <PackageName>`.
 - Keep versions explicit (no floating ranges) to preserve reproducibility; update via intentional CLI commands.
+
+## 33. Client-Server Development Workflow
+- **CRITICAL**: The Blazor WebAssembly client (`BudgetExperiment.Client`) is hosted by the API (`BudgetExperiment.Api`) and should NEVER be run standalone.
+- **Only run the API**: `dotnet run --project c:\ws\BudgetExpirement\src\BudgetExperiment.Api\BudgetExperiment.Api.csproj`
+- The API serves both the REST endpoints AND hosts the Blazor WebAssembly client.
+- The client is served from the API's wwwroot and makes HTTP calls to the same server's API endpoints.
+- For development, only one terminal is needed:
+  - Terminal: API server (usually http://localhost:5099) - this serves both API and client
+- When testing or debugging client features, ensure only the API is running - the client will be automatically served by the API.

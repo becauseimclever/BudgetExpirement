@@ -172,6 +172,61 @@ public sealed class BillSchedule
         this.UpdatedUtc = DateTime.UtcNow;
     }
 
+    /// <summary>Update the bill name.</summary>
+    /// <param name="name">New bill name.</param>
+    public void UpdateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainException("Bill name required.");
+        }
+
+        this.Name = name.Trim();
+        this.MarkUpdated();
+    }
+
+    /// <summary>Update the bill amount.</summary>
+    /// <param name="amount">New bill amount.</param>
+    public void UpdateAmount(MoneyValue amount)
+    {
+        if (amount.Amount < 0m)
+        {
+            throw new DomainException("Bill amount cannot be negative.");
+        }
+
+        this.Amount = amount;
+        this.MarkUpdated();
+    }
+
+    /// <summary>Update the anchor date.</summary>
+    /// <param name="anchor">New anchor date.</param>
+    public void UpdateAnchor(DateOnly anchor)
+    {
+        this.Anchor = anchor;
+        this.MarkUpdated();
+    }
+
+    /// <summary>Update the recurrence type and interval.</summary>
+    /// <param name="recurrence">New recurrence type.</param>
+    public void UpdateRecurrence(RecurrenceKind recurrence)
+    {
+        this.Recurrence = recurrence;
+
+        // Update the days interval based on recurrence type
+        this.DaysInterval = recurrence switch
+        {
+            RecurrenceKind.Weekly => 7,
+            RecurrenceKind.BiWeekly => 14,
+            RecurrenceKind.Monthly => null,
+            RecurrenceKind.Quarterly => null,
+            RecurrenceKind.SemiAnnual => null,
+            RecurrenceKind.Annual => null,
+            _ => throw new DomainException($"Unsupported recurrence kind: {recurrence}"),
+        };
+
+        this.MarkUpdated();
+    }
+
     /// <summary>Get due dates within an inclusive range.</summary>
     /// <param name="rangeStart">Start (inclusive).</param>
     /// <param name="rangeEnd">End (inclusive).</param>

@@ -50,6 +50,45 @@ public sealed class BillSchedulesController : ControllerBase
         return this.Created($"/api/v1/billschedules/{id}", dto);
     }
 
+    /// <summary>Create bill schedule with any recurrence type.</summary>
+    /// <param name="request">Request body.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Created result.</returns>
+    [HttpPost]
+    [ProducesResponseType(typeof(BudgetExperiment.Application.BillSchedules.BillScheduleDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] CreateBillScheduleRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return this.ValidationProblem("Name required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
+        {
+            return this.ValidationProblem("Currency must be 3 letters.");
+        }
+
+        if (request.Amount < 0m)
+        {
+            return this.ValidationProblem("Amount must be non-negative.");
+        }
+
+        if (request.Anchor == default)
+        {
+            return this.ValidationProblem("Anchor required.");
+        }
+
+        if (!Enum.IsDefined(typeof(BillSchedule.RecurrenceKind), request.Recurrence))
+        {
+            return this.ValidationProblem("Invalid recurrence type.");
+        }
+
+        var recurrence = (BillSchedule.RecurrenceKind)request.Recurrence;
+        var id = await this._service.CreateAsync(request.Name.Trim(), MoneyValue.Create(request.Currency.ToUpperInvariant(), request.Amount), request.Anchor, recurrence, ct).ConfigureAwait(false);
+        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false)!;
+        return this.Created($"/api/v1/billschedules/{id}", dto);
+    }
+
     /// <summary>Get bill schedule by id.</summary>
     /// <param name="id">Identifier.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -105,6 +144,46 @@ public sealed class BillSchedulesController : ControllerBase
         };
         this.Response.Headers["X-Pagination-TotalCount"] = total.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return this.Ok(result);
+    }
+
+    /// <summary>Update bill schedule.</summary>
+    /// <param name="id">Bill schedule identifier.</param>
+    /// <param name="request">Request body.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>No content if updated, not found if it doesn't exist.</returns>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBillScheduleRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return this.ValidationProblem("Name required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
+        {
+            return this.ValidationProblem("Currency must be 3 letters.");
+        }
+
+        if (request.Amount < 0m)
+        {
+            return this.ValidationProblem("Amount must be non-negative.");
+        }
+
+        if (request.Anchor == default)
+        {
+            return this.ValidationProblem("Anchor required.");
+        }
+
+        if (!Enum.IsDefined(typeof(BillSchedule.RecurrenceKind), request.Recurrence))
+        {
+            return this.ValidationProblem("Invalid recurrence type.");
+        }
+
+        var recurrence = (BillSchedule.RecurrenceKind)request.Recurrence;
+        var updated = await this._service.UpdateAsync(id, request.Name.Trim(), MoneyValue.Create(request.Currency.ToUpperInvariant(), request.Amount), request.Anchor, recurrence, ct).ConfigureAwait(false);
+        return updated ? this.NoContent() : this.NotFound();
     }
 
     /// <summary>Delete bill schedule.</summary>
