@@ -3,55 +3,88 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<h2>Dashboard</h2>
+<FluentStack Orientation="Orientation.Vertical" HorizontalGap="16">
+    <FluentLabel Typo="Typography.PageTitle">Dashboard</FluentLabel>
 
-@if (summary is null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <div class="stats">
-        <div class="stat">Pay Schedules: <strong>@summary.PayScheduleCount</strong></div>
-        <div class="stat">Bill Schedules: <strong>@summary.BillScheduleCount</strong></div>
-    </div>
-
-    <h3>Recent Pay Schedules</h3>
-    @if (summary.RecentPaySchedules.Count == 0)
+    @if (summary is null)
     {
-        <p><em>None</em></p>
+        <FluentProgressRing />
+        <FluentLabel>Loading...</FluentLabel>
     }
     else
     {
-        <table class="table table-sm">
-            <thead><tr><th>Anchor</th><th>Recurrence</th><th>Created (UTC)</th></tr></thead>
-            <tbody>
-            @foreach (var p in summary.RecentPaySchedules)
-            {
-                <tr><td>@p.Anchor</td><td>@p.Recurrence</td><td>@p.CreatedUtc.ToString("u")</td></tr>
-            }
-            </tbody>
-        </table>
-    }
+        <FluentCard>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32">
+                <FluentNumberField Label="Pay Schedules" Value="@summary.PayScheduleCount" ReadOnly="true" />
+                <FluentNumberField Label="Bill Schedules" Value="@summary.BillScheduleCount" ReadOnly="true" />
+            </FluentStack>
+        </FluentCard>
 
-    <h3>Recent Bill Schedules</h3>
-    @if (summary.RecentBillSchedules.Count == 0)
-    {
-        <p><em>None</em></p>
+        <FluentLabel Typo="Typography.Subject">Recent Pay Schedules</FluentLabel>
+        @if (summary.RecentPaySchedules.Count == 0)
+        {
+            <FluentLabel>None</FluentLabel>
+        }
+        else
+        {
+            <FluentCard>
+                <table class="fluent-table">
+                    <thead>
+                        <tr>
+                            <th>Anchor</th>
+                            <th>Recurrence</th>
+                            <th>Created (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in summary.RecentPaySchedules)
+                        {
+                            <tr>
+                                <td>@p.Anchor</td>
+                                <td>@p.Recurrence</td>
+                                <td>@p.CreatedUtc.ToString("u")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </FluentCard>
+        }
+
+        <FluentLabel Typo="Typography.Subject">Recent Bill Schedules</FluentLabel>
+        @if (summary.RecentBillSchedules.Count == 0)
+        {
+            <FluentLabel>None</FluentLabel>
+        }
+        else
+        {
+            <FluentCard>
+                <table class="fluent-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount</th>
+                            <th>Anchor</th>
+                            <th>Recurrence</th>
+                            <th>Created (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in summary.RecentBillSchedules)
+                        {
+                            <tr>
+                                <td>@b.Name</td>
+                                <td>@b.Amount @b.Currency</td>
+                                <td>@b.Anchor</td>
+                                <td>@b.Recurrence</td>
+                                <td>@b.CreatedUtc.ToString("u")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </FluentCard>
+        }
     }
-    else
-    {
-        <table class="table table-sm">
-            <thead><tr><th>Name</th><th>Amount</th><th>Anchor</th><th>Recurrence</th><th>Created (UTC)</th></tr></thead>
-            <tbody>
-            @foreach (var b in summary.RecentBillSchedules)
-            {
-                <tr><td>@b.Name</td><td>@b.Amount @b.Currency</td><td>@b.Anchor</td><td>@b.Recurrence</td><td>@b.CreatedUtc.ToString("u")</td></tr>
-            }
-            </tbody>
-        </table>
-    }
-}
+</FluentStack>
 
 @code {
     private BudgetExperiment.Client.Api.DashboardSummary? summary;
