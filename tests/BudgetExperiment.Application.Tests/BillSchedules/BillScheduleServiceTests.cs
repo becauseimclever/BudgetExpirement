@@ -13,7 +13,7 @@ public sealed class BillScheduleServiceTests
     [Fact]
     public async Task CreateMonthlyAsync_Persists_And_Returns_Id()
     {
-        var store = new InMemoryStore<BillSchedule>();
+        var store = new MockStore<BillSchedule>();
         var svc = new BillScheduleService(new WriteRepo(store), new ReadRepo(store), new Uow());
         var id = await svc.CreateMonthlyAsync("Rent", MoneyValue.Create("USD", 1500m), new DateOnly(2025, 1, 5));
         Assert.NotEqual(Guid.Empty, id);
@@ -26,7 +26,7 @@ public sealed class BillScheduleServiceTests
     [Fact]
     public async Task GetOccurrencesAsync_Returns_Expected_Dates()
     {
-        var store = new InMemoryStore<BillSchedule>();
+        var store = new MockStore<BillSchedule>();
         var schedule = BillSchedule.CreateMonthly("Subscription", MoneyValue.Create("USD", 10m), new DateOnly(2025, 1, 31));
         store.Items.Add(schedule.Id, schedule);
         var svc = new BillScheduleService(new WriteRepo(store), new ReadRepo(store), new Uow());
@@ -46,18 +46,18 @@ public sealed class BillScheduleServiceTests
     [Fact]
     public async Task GetOccurrencesAsync_Unknown_Id_Throws()
     {
-        var svc = new BillScheduleService(new WriteRepo(new InMemoryStore<BillSchedule>()), new ReadRepo(new InMemoryStore<BillSchedule>()), new Uow());
+        var svc = new BillScheduleService(new WriteRepo(new MockStore<BillSchedule>()), new ReadRepo(new MockStore<BillSchedule>()), new Uow());
         var ex = await Assert.ThrowsAsync<DomainException>(() => svc.GetOccurrencesAsync(Guid.NewGuid(), new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31)));
         Assert.Contains("not found", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    // In-memory helpers ---------------------------------------------------
-    private sealed class InMemoryStore<T>
+    // Mock test helpers ---------------------------------------------------
+    private sealed class MockStore<T>
     {
         public Dictionary<Guid, T> Items { get; } = new();
     }
 
-    private sealed class ReadRepo(InMemoryStore<BillSchedule> store) : IReadRepository<BillSchedule>
+    private sealed class ReadRepo(MockStore<BillSchedule> store) : IReadRepository<BillSchedule>
     {
         public Task<BillSchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
@@ -75,7 +75,7 @@ public sealed class BillScheduleServiceTests
             => Task.FromResult((long)store.Items.Count);
     }
 
-    private sealed class WriteRepo(InMemoryStore<BillSchedule> store) : IWriteRepository<BillSchedule>
+    private sealed class WriteRepo(MockStore<BillSchedule> store) : IWriteRepository<BillSchedule>
     {
         public Task AddAsync(BillSchedule entity, CancellationToken cancellationToken = default)
         {
