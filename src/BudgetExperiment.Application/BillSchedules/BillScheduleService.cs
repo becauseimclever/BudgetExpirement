@@ -70,4 +70,18 @@ public sealed class BillScheduleService : IBillScheduleService
         var total = await this._read.CountAsync(cancellationToken).ConfigureAwait(false);
         return (entities.Select(BillScheduleDto.FromEntity).ToList(), total);
     }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var schedule = await this._read.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (schedule is null)
+        {
+            return false;
+        }
+
+        await this._write.RemoveAsync(schedule, cancellationToken).ConfigureAwait(false);
+        await this._uow.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
 }

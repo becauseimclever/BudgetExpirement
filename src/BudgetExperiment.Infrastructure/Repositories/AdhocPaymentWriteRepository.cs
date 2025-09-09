@@ -29,6 +29,13 @@ public sealed class AdhocPaymentWriteRepository : IAdhocPaymentWriteRepository
         await this._context.AdhocPayments.AddAsync(entity, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task RemoveAsync(AdhocPayment entity, CancellationToken cancellationToken = default)
+    {
+        this._context.AdhocPayments.Remove(entity);
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Updates an adhoc payment in the context.
     /// </summary>

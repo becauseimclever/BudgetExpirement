@@ -52,6 +52,12 @@ public sealed class InMemoryPayScheduleServiceTests
             return Task.CompletedTask;
         }
 
+        public Task RemoveAsync(PaySchedule entity, CancellationToken cancellationToken = default)
+        {
+            this._data.Remove(entity.Id);
+            return Task.CompletedTask;
+        }
+
         public Task<PaySchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
             => Task.FromResult(this._data.TryGetValue(id, out var v) ? v : null);
 

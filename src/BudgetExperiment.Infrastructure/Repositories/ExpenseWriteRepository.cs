@@ -24,6 +24,13 @@ public sealed class ExpenseWriteRepository : IExpenseWriteRepository
         await this.context.Expenses.AddAsync(entity, cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public Task RemoveAsync(Expense entity, CancellationToken cancellationToken = default)
+    {
+        this.context.Expenses.Remove(entity);
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Adds an expense to the repository.
     /// </summary>

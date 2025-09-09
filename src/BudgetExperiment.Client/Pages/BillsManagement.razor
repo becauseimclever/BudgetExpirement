@@ -30,10 +30,11 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 25%;">Bill Name</th>
-                            <th style="width: 15%;">Currency</th>
-                            <th style="width: 20%;">Amount</th>
-                            <th style="width: 20%;">Due Date</th>
-                            <th style="width: 20%;">Recurrence</th>
+                            <th style="width: 12%;">Currency</th>
+                            <th style="width: 18%;">Amount</th>
+                            <th style="width: 18%;">Due Date</th>
+                            <th style="width: 17%;">Recurrence</th>
+                            <th style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,6 +47,14 @@
                                 <td>@bill.Amount.ToString("C")</td>
                                 <td>@bill.Anchor.ToString("MMM dd")</td>
                                 <td>@bill.Recurrence</td>
+                                <td>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-danger" 
+                                            @onclick="() => DeleteBill(bill)"
+                                            title="Delete bill">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
                             </tr>
                         }
                         
@@ -147,7 +156,7 @@
                         
                         @* Add new row button *@
                         <tr class="add-row">
-                            <td colspan="5" class="text-center">
+                            <td colspan="6" class="text-center">
                                 <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddNewRow">
                                     <i class="bi bi-plus-lg"></i> Add New Bill
                                 </button>
@@ -493,6 +502,29 @@
         {
             row.IsSaving = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task DeleteBill(BillScheduleItem bill)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/v1/billschedules/{bill.Id}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                ShowToast($"Bill '{bill.Name}' deleted successfully!", false);
+                await LoadBills(); // Refresh the list
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast($"Failed to delete bill: {response.StatusCode}. {errorContent}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error deleting bill: {ex.Message}", true);
         }
     }
 

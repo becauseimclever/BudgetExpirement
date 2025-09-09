@@ -13,4 +13,12 @@ public interface IWriteRepository<T>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task AddAsync(T entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes the aggregate from the store.
+    /// </summary>
+    /// <param name="entity">Aggregate instance.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task RemoveAsync(T entity, CancellationToken cancellationToken = default);
 }

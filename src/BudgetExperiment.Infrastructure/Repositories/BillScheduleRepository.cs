@@ -27,6 +27,13 @@ public sealed class BillScheduleRepository : IReadRepository<BillSchedule>, IWri
     }
 
     /// <inheritdoc />
+    public Task RemoveAsync(BillSchedule entity, CancellationToken cancellationToken = default)
+    {
+        this._db.BillSchedules.Remove(entity);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<BillSchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
         => await this._db.BillSchedules
             .OrderBy(b => b.CreatedUtc)

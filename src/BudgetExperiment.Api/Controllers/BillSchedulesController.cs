@@ -106,4 +106,17 @@ public sealed class BillSchedulesController : ControllerBase
         this.Response.Headers["X-Pagination-TotalCount"] = total.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return this.Ok(result);
     }
+
+    /// <summary>Delete bill schedule.</summary>
+    /// <param name="id">Identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>No content if deleted, not found if it doesn't exist.</returns>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var deleted = await this._service.DeleteAsync(id, ct).ConfigureAwait(false);
+        return deleted ? this.NoContent() : this.NotFound();
+    }
 }

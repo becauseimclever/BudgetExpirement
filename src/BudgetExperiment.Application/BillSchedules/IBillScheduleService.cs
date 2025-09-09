@@ -35,4 +35,10 @@ public interface IBillScheduleService
     /// <param name="cancellationToken">Token.</param>
     /// <returns>Items + total count.</returns>
     Task<(IReadOnlyList<BillScheduleDto> Items, long Total)> ListAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>Delete a bill schedule.</summary>
+    /// <param name="id">Schedule id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if deleted, false if not found.</returns>
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

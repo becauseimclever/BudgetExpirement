@@ -113,6 +113,12 @@ public sealed class PayScheduleServiceTests
             store.Items[entity.Id] = entity;
             return Task.CompletedTask;
         }
+
+        public Task RemoveAsync(PaySchedule entity, CancellationToken cancellationToken = default)
+        {
+            store.Items.Remove(entity.Id);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class Uow : IUnitOfWork

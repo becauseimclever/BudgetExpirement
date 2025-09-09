@@ -82,6 +82,12 @@ public sealed class BillScheduleServiceTests
             store.Items[entity.Id] = entity;
             return Task.CompletedTask;
         }
+
+        public Task RemoveAsync(BillSchedule entity, CancellationToken cancellationToken = default)
+        {
+            store.Items.Remove(entity.Id);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class Uow : IUnitOfWork

@@ -27,6 +27,13 @@ public sealed class PayScheduleRepository : IReadRepository<PaySchedule>, IWrite
     }
 
     /// <inheritdoc />
+    public Task RemoveAsync(PaySchedule entity, CancellationToken cancellationToken = default)
+    {
+        this._db.PaySchedules.Remove(entity);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<PaySchedule>> ListAsync(int skip, int take, CancellationToken cancellationToken = default)
         => await this._db.PaySchedules
             .OrderBy(p => p.CreatedUtc)

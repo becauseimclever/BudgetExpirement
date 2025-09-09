@@ -21,6 +21,23 @@ public sealed class InMemoryBillScheduleServiceTests
         await Assert.ThrowsAsync<DomainException>(async () => await harness.Service.GetOccurrencesAsync(Guid.NewGuid(), new DateOnly(2025, 1, 1), new DateOnly(2025, 1, 31)));
     }
 
+    [Fact]
+    public async Task Delete_Existing_BillSchedule_Returns_True()
+    {
+        var harness = new Harness();
+        var id = await harness.Service.CreateMonthlyAsync("Rent", MoneyValue.Create("USD", 1200m), new DateOnly(2025, 1, 5));
+        var deleted = await harness.Service.DeleteAsync(id);
+        Assert.True(deleted);
+    }
+
+    [Fact]
+    public async Task Delete_NonExisting_BillSchedule_Returns_False()
+    {
+        var harness = new Harness();
+        var deleted = await harness.Service.DeleteAsync(Guid.NewGuid());
+        Assert.False(deleted);
+    }
+
     private sealed class Harness
     {
         public Harness()
@@ -47,6 +64,12 @@ public sealed class InMemoryBillScheduleServiceTests
         public Task AddAsync(BillSchedule entity, CancellationToken cancellationToken = default)
         {
             this._data[entity.Id] = entity;
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(BillSchedule entity, CancellationToken cancellationToken = default)
+        {
+            this._data.Remove(entity.Id);
             return Task.CompletedTask;
         }
 

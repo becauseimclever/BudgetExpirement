@@ -73,7 +73,13 @@
                                             {
                                                 @foreach (var bill in GetBillsForDay(day))
                                                 {
-                                                    <div class="bill-amount">-$@bill.Amount.ToString("N0")</div>
+                                                    <div class="bill-amount" 
+                                                         title="@bill.Name"
+                                                         @oncontextmenu="@(e => OnBillRightClick(e, bill))" 
+                                                         @oncontextmenu:preventDefault="true"
+                                                         @oncontextmenu:stopPropagation="true">
+                                                        -$@bill.Amount.ToString("N0")
+                                                    </div>
                                                 }
                                             }
                                             @if (hasExpense)
@@ -137,6 +143,12 @@
         {
             <div class="context-menu-item" style="padding: 8px 12px; cursor: pointer; border-radius: 3px; hover: background-color: #ffe6e6; color: #d32f2f;" @onclick="() => DeleteAdhocPayment(contextMenuAdhocPayment)">
                 Delete Adhoc Payment: @contextMenuAdhocPayment.Description ($@contextMenuAdhocPayment.Amount.ToString("N0"))
+            </div>
+        }
+        else if (contextMenuType == ContextMenuType.DeleteBill && contextMenuBill != null)
+        {
+            <div class="context-menu-item" style="padding: 8px 12px; cursor: pointer; border-radius: 3px; hover: background-color: #ffe6e6; color: #d32f2f;" @onclick="() => DeleteBillSchedule(contextMenuBill)">
+                Delete Bill: @contextMenuBill.Name ($@contextMenuBill.Amount.ToString("N0"))
             </div>
         }
     </div>
@@ -257,6 +269,7 @@
     private ContextMenuType contextMenuType = ContextMenuType.Add;
     private ExpenseItem? contextMenuExpense = null;
     private AdhocPaymentItem? contextMenuAdhocPayment = null;
+    private BillScheduleItem? contextMenuBill = null;
     
     // Expense modal state
     private bool showExpenseModal = false;
@@ -603,6 +616,7 @@
         contextMenuType = ContextMenuType.Add;
         contextMenuExpense = null;
         contextMenuAdhocPayment = null;
+        contextMenuBill = null;
         contextMenuX = e.ClientX;
         contextMenuY = e.ClientY;
         StateHasChanged();
@@ -614,6 +628,7 @@
         contextMenuType = ContextMenuType.DeleteExpense;
         contextMenuExpense = expense;
         contextMenuAdhocPayment = null;
+        contextMenuBill = null;
         contextMenuX = e.ClientX;
         contextMenuY = e.ClientY;
         StateHasChanged();
@@ -625,6 +640,19 @@
         contextMenuType = ContextMenuType.DeleteAdhocPayment;
         contextMenuExpense = null;
         contextMenuAdhocPayment = adhocPayment;
+        contextMenuBill = null;
+        contextMenuX = e.ClientX;
+        contextMenuY = e.ClientY;
+        StateHasChanged();
+    }
+
+    private void OnBillRightClick(MouseEventArgs e, BillScheduleItem bill)
+    {
+        showContextMenu = true;
+        contextMenuType = ContextMenuType.DeleteBill;
+        contextMenuExpense = null;
+        contextMenuAdhocPayment = null;
+        contextMenuBill = bill;
         contextMenuX = e.ClientX;
         contextMenuY = e.ClientY;
         StateHasChanged();
@@ -846,6 +874,38 @@
         catch (Exception ex)
         {
             ShowToast($"Error deleting adhoc payment: {ex.Message}", true);
+        }
+    }
+    
+    private async Task DeleteBillSchedule(BillScheduleItem bill)
+    {
+        try
+        {
+            showContextMenu = false;
+            var response = await Http.DeleteAsync($"api/v1/billschedules/{bill.Id}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear caches to force refresh
+                billOccurrenceCache.Clear();
+                billDetailsCache.Clear();
+                
+                // Show success message
+                ShowToast($"Bill '{bill.Name}' deleted successfully!", false);
+                
+                // Refresh the bill schedules list and current view
+                await LoadBillSchedules();
+                await LoadCurrentMonth();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast($"Failed to delete bill: {response.StatusCode}. {errorContent}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error deleting bill: {ex.Message}", true);
         }
     }
     
@@ -1219,6 +1279,7 @@
     {
         Add,
         DeleteExpense,
-        DeleteAdhocPayment
+        DeleteAdhocPayment,
+        DeleteBill
     }
 }
