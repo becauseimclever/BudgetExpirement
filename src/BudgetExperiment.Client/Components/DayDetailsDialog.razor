@@ -1,0 +1,332 @@
+@inject IJSRuntime JS
+@using Microsoft.FluentUI.AspNetCore.Components
+@using BudgetExperiment.Client.Api
+
+<FluentDialog Hidden="@(!IsVisible)" 
+              Modal="true" 
+              Style="--dialog-width: 800px; --dialog-height: 80vh; max-width: 90vw;">
+    <FluentDialogHeader>
+        <FluentLabel Typo="Typography.H4">
+            @Title
+        </FluentLabel>
+    </FluentDialogHeader>
+
+    <FluentDialogBody Style="padding: 0;">
+        <FluentStack Orientation="Orientation.Vertical" Style="height: 100%;">
+            <!-- Action Buttons -->
+            <FluentCard Style="margin: 16px; padding: 16px;">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton Appearance="Appearance.Accent" 
+                                  OnClick="() => OnAddPaySchedule.InvokeAsync()"
+                                  Style="flex: 1; min-width: 120px;">
+                        + Pay Schedule
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Accent" 
+                                  OnClick="() => OnAddBillSchedule.InvokeAsync()"
+                                  Style="flex: 1; min-width: 120px;">
+                        + Bill Schedule
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Accent" 
+                                  OnClick="() => OnAddExpense.InvokeAsync()"
+                                  Style="flex: 1; min-width: 120px;">
+                        + Expense
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Accent" 
+                                  OnClick="() => OnAddPayment.InvokeAsync()"
+                                  Style="flex: 1; min-width: 120px;">
+                        + Payment
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+
+            <!-- Items List -->
+            <FluentCard Style="margin: 0 16px 16px 16px; flex: 1; overflow-y: auto; min-height: 400px;">
+                @if (!HasAnyItems)
+                {
+                    <div style="padding: 32px; text-align: center; color: var(--neutral-foreground-secondary);">
+                        <FluentLabel Typo="Typography.Body">
+                            No items scheduled for this day. Use the buttons above to add new items.
+                        </FluentLabel>
+                    </div>
+                }
+                else
+                {
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="padding: 20px;">
+                        <!-- Pay Schedules Section -->
+                        @if (PaySchedules?.Any() == true)
+                        {
+                            <div style="margin-bottom: 16px;">
+                                <FluentLabel Typo="Typography.Body" Style="color: var(--palette-green-foreground-1); margin-bottom: 8px; display: block; font-weight: 600;">
+                                    💰 Pay Schedules (@PaySchedules.Count)
+                                </FluentLabel>
+                                @foreach (var paySchedule in PaySchedules)
+                                {
+                                    <FluentCard Class="item-card pay-schedule-item" 
+                                                Style="cursor: pointer; margin-bottom: 12px; padding: 16px;"
+                                                @onclick="() => OnEditPaySchedule.InvokeAsync(paySchedule)">
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Style="align-items: center;">
+                                            <div style="flex: 1;">
+                                                <FluentLabel Typo="Typography.Body" Style="font-weight: 600; font-size: 16px;">
+                                                    @GetPayScheduleName(paySchedule)
+                                                </FluentLabel>
+                                                <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); display: block; font-size: 14px; margin-top: 4px;">
+                                                    @paySchedule.Recurrence (@paySchedule.Anchor.ToString("MMM d, yyyy"))
+                                                </FluentLabel>
+                                            </div>
+                                            <FluentLabel Typo="Typography.Body" Style="color: var(--palette-green-foreground-1); font-weight: 600; font-size: 18px;">
+                                                +$@paySchedule.Amount.ToString("N2")
+                                            </FluentLabel>
+                                        </FluentStack>
+                                    </FluentCard>
+                                }
+                            </div>
+                        }
+
+                        <!-- Bill Schedules Section -->
+                        @if (BillSchedules?.Any() == true)
+                        {
+                            <div style="margin-bottom: 16px;">
+                                <FluentLabel Typo="Typography.Body" Style="color: var(--palette-red-foreground-1); margin-bottom: 8px; display: block; font-weight: 600;">
+                                    🧾 Bills (@BillSchedules.Count)
+                                </FluentLabel>
+                                @foreach (var billSchedule in BillSchedules)
+                                {
+                                    <FluentCard Class="item-card bill-schedule-item" 
+                                                Style="cursor: pointer; margin-bottom: 12px; padding: 16px;"
+                                                @onclick="() => OnEditBillSchedule.InvokeAsync(billSchedule)">
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Style="align-items: center;">
+                                            <div style="flex: 1;">
+                                                <FluentLabel Typo="Typography.Body" Style="font-weight: 600; font-size: 16px;">
+                                                    @billSchedule.Name
+                                                </FluentLabel>
+                                                <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); display: block; font-size: 14px; margin-top: 4px;">
+                                                    @GetBillRecurrenceDisplayName(billSchedule.Recurrence) (@billSchedule.Anchor.ToString("MMM d, yyyy"))
+                                                </FluentLabel>
+                                            </div>
+                                            <FluentLabel Typo="Typography.Body" Style="color: var(--palette-red-foreground-1); font-weight: 600; font-size: 18px;">
+                                                -$@billSchedule.Amount.ToString("N2")
+                                            </FluentLabel>
+                                        </FluentStack>
+                                    </FluentCard>
+                                }
+                            </div>
+                        }
+
+                        <!-- Expenses Section -->
+                        @if (Expenses?.Any() == true)
+                        {
+                            <div style="margin-bottom: 16px;">
+                                <FluentLabel Typo="Typography.Body" Style="color: var(--palette-orange-foreground-1); margin-bottom: 8px; display: block; font-weight: 600;">
+                                    🛒 Expenses (@Expenses.Count)
+                                </FluentLabel>
+                                @foreach (var expense in Expenses)
+                                {
+                                    <FluentCard Class="item-card expense-item" 
+                                                Style="cursor: pointer; margin-bottom: 12px; padding: 16px;"
+                                                @onclick="() => OnEditExpense.InvokeAsync(expense)">
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Style="align-items: center;">
+                                            <div style="flex: 1;">
+                                                <FluentLabel Typo="Typography.Body" Style="font-weight: 600; font-size: 16px;">
+                                                    @expense.Description
+                                                </FluentLabel>
+                                                @if (!string.IsNullOrEmpty(expense.Category))
+                                                {
+                                                    <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); display: block; font-size: 14px; margin-top: 4px;">
+                                                        Category: @expense.Category
+                                                    </FluentLabel>
+                                                }
+                                            </div>
+                                            <FluentLabel Typo="Typography.Body" Style="color: var(--palette-orange-foreground-1); font-weight: 600; font-size: 18px;">
+                                                -$@expense.Amount.ToString("N2")
+                                            </FluentLabel>
+                                        </FluentStack>
+                                    </FluentCard>
+                                }
+                            </div>
+                        }
+
+                        <!-- Adhoc Payments Section -->
+                        @if (AdhocPayments?.Any() == true)
+                        {
+                            <div style="margin-bottom: 16px;">
+                                <FluentLabel Typo="Typography.Body" Style="color: var(--palette-blue-foreground-1); margin-bottom: 8px; display: block; font-weight: 600;">
+                                    💸 Ad-hoc Payments (@AdhocPayments.Count)
+                                </FluentLabel>
+                                @foreach (var adhocPayment in AdhocPayments)
+                                {
+                                    <FluentCard Class="item-card adhoc-payment-item" 
+                                                Style="cursor: pointer; margin-bottom: 12px; padding: 16px;"
+                                                @onclick="() => OnEditAdhocPayment.InvokeAsync(adhocPayment)">
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Style="align-items: center;">
+                                            <div style="flex: 1;">
+                                                <FluentLabel Typo="Typography.Body" Style="font-weight: 600; font-size: 16px;">
+                                                    @adhocPayment.Description
+                                                </FluentLabel>
+                                                @if (!string.IsNullOrEmpty(adhocPayment.Category))
+                                                {
+                                                    <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); display: block; font-size: 14px; margin-top: 4px;">
+                                                        Category: @adhocPayment.Category
+                                                    </FluentLabel>
+                                                }
+                                            </div>
+                                            <FluentLabel Typo="Typography.Body" Style="color: var(--palette-blue-foreground-1); font-weight: 600; font-size: 18px;">
+                                                +$@adhocPayment.Amount.ToString("N2")
+                                            </FluentLabel>
+                                        </FluentStack>
+                                    </FluentCard>
+                                }
+                            </div>
+                        }
+
+                        <!-- Total Summary -->
+                        @if (HasAnyItems)
+                        {
+                            <FluentCard Style="background-color: var(--neutral-layer-2); margin-top: 20px; padding: 20px;">
+                                <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Style="align-items: center;">
+                                    <FluentLabel Typo="Typography.Body" Style="font-weight: 600; font-size: 18px;">
+                                        Daily Total:
+                                    </FluentLabel>
+                                    <FluentLabel Typo="Typography.Body" Style="@($"{GetTotalAmountStyle()}; font-size: 20px;")">
+                                        @GetTotalAmountText()
+                                    </FluentLabel>
+                                </FluentStack>
+                            </FluentCard>
+                        }
+                    </FluentStack>
+                }
+            </FluentCard>
+        </FluentStack>
+    </FluentDialogBody>
+
+    <FluentDialogFooter>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End">
+            <FluentButton Appearance="Appearance.Neutral" OnClick="OnClose">
+                Close
+            </FluentButton>
+        </FluentStack>
+    </FluentDialogFooter>
+</FluentDialog>
+
+<style>
+    .item-card {
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .item-card:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--elevation-shadow-tooltip);
+    }
+
+    .pay-schedule-item {
+        border-left: 4px solid var(--palette-green-foreground-1);
+        background-color: var(--palette-green-background-1);
+    }
+
+    .pay-schedule-item:hover {
+        background-color: var(--palette-green-background-2);
+        border-color: var(--palette-green-foreground-1);
+    }
+
+    .bill-schedule-item {
+        border-left: 4px solid var(--palette-red-foreground-1);
+        background-color: var(--palette-red-background-1);
+    }
+
+    .bill-schedule-item:hover {
+        background-color: var(--palette-red-background-2);
+        border-color: var(--palette-red-foreground-1);
+    }
+
+    .expense-item {
+        border-left: 4px solid var(--palette-orange-foreground-1);
+        background-color: var(--palette-orange-background-1);
+    }
+
+    .expense-item:hover {
+        background-color: var(--palette-orange-background-2);
+        border-color: var(--palette-orange-foreground-1);
+    }
+
+    .adhoc-payment-item {
+        border-left: 4px solid var(--palette-blue-foreground-1);
+        background-color: var(--palette-blue-background-1);
+    }
+
+    .adhoc-payment-item:hover {
+        background-color: var(--palette-blue-background-2);
+        border-color: var(--palette-blue-foreground-1);
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; } = false;
+    [Parameter] public string Title { get; set; } = "Day Details";
+    [Parameter] public DateOnly SelectedDate { get; set; }
+    
+    // Item collections for the selected day
+    [Parameter] public List<PayScheduleItem>? PaySchedules { get; set; }
+    [Parameter] public List<BillScheduleItem>? BillSchedules { get; set; }
+    [Parameter] public List<ExpenseItem>? Expenses { get; set; }
+    [Parameter] public List<AdhocPaymentItem>? AdhocPayments { get; set; }
+
+    // Event callbacks for actions
+    [Parameter] public EventCallback OnClose { get; set; }
+    
+    // Add new item callbacks
+    [Parameter] public EventCallback OnAddPaySchedule { get; set; }
+    [Parameter] public EventCallback OnAddBillSchedule { get; set; }
+    [Parameter] public EventCallback OnAddExpense { get; set; }
+    [Parameter] public EventCallback OnAddPayment { get; set; }
+    
+    // Edit item callbacks
+    [Parameter] public EventCallback<PayScheduleItem> OnEditPaySchedule { get; set; }
+    [Parameter] public EventCallback<BillScheduleItem> OnEditBillSchedule { get; set; }
+    [Parameter] public EventCallback<ExpenseItem> OnEditExpense { get; set; }
+    [Parameter] public EventCallback<AdhocPaymentItem> OnEditAdhocPayment { get; set; }
+
+    private bool HasAnyItems => 
+        (PaySchedules?.Any() == true) ||
+        (BillSchedules?.Any() == true) ||
+        (Expenses?.Any() == true) ||
+        (AdhocPayments?.Any() == true);
+
+    private decimal GetTotalAmount()
+    {
+        var totalIncome = (PaySchedules?.Sum(p => p.Amount) ?? 0) + (AdhocPayments?.Sum(a => a.Amount) ?? 0);
+        var totalExpenses = (BillSchedules?.Sum(b => b.Amount) ?? 0) + (Expenses?.Sum(e => e.Amount) ?? 0);
+        return totalIncome - totalExpenses;
+    }
+
+    private string GetTotalAmountText()
+    {
+        var total = GetTotalAmount();
+        var prefix = total >= 0 ? "+" : "";
+        return $"{prefix}${total:N2}";
+    }
+
+    private string GetTotalAmountStyle()
+    {
+        var total = GetTotalAmount();
+        var color = total >= 0 ? "var(--palette-green-foreground-1)" : "var(--palette-red-foreground-1)";
+        return $"color: {color}; font-weight: 600;";
+    }
+
+    private string GetPayScheduleName(PayScheduleItem paySchedule)
+    {
+        return $"{paySchedule.Recurrence} Pay";
+    }
+
+    private string GetBillRecurrenceDisplayName(int recurrence)
+    {
+        return recurrence switch
+        {
+            0 => "Weekly",
+            1 => "BiWeekly", 
+            2 => "Monthly",
+            3 => "Quarterly",
+            _ => "Monthly"
+        };
+    }
+}
+

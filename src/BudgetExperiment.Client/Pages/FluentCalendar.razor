@@ -67,7 +67,8 @@
                             var adhocPaymentsForDay = GetAdhocPaymentsForDay(day);
                             var hasEvents = paySchedulesForDay.Any() || billSchedulesForDay.Any() || expensesForDay.Any() || adhocPaymentsForDay.Any();
                             
-                            <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)">
+                            <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)"
+                                 @onclick="() => OpenDayDetailsDialog(day)">
                                 <div style="height: 100%; padding: 8px; position: relative;">
                                     <FluentLabel Typo="Typography.Body" 
                                                  Style="@GetDayNumberStyle(isToday, isCurrentMonth)">
@@ -81,7 +82,7 @@
                                             <FluentCard Class="pay-schedule-card" 
                                                         Title="@GetPayScheduleTooltip(paySchedule)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="() => OpenPayScheduleDialog(paySchedule)">
+                                                        @onclick="@(() => OpenPayScheduleDialog(paySchedule))">
                                                 <FluentStack Orientation="Orientation.Vertical" 
                                                              VerticalGap="1" 
                                                              Style="align-items: flex-end;">
@@ -105,7 +106,7 @@
                                             <FluentCard Class="bill-schedule-card" 
                                                         Title="@GetBillScheduleTooltip(billSchedule)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="() => OpenBillScheduleDialog(billSchedule)">
+                                                        @onclick="@(() => OpenBillScheduleDialog(billSchedule))">
                                                 <FluentStack Orientation="Orientation.Vertical" 
                                                              VerticalGap="1" 
                                                              Style="align-items: flex-end;">
@@ -129,7 +130,7 @@
                                             <FluentCard Class="expense-card" 
                                                         Title="@GetExpenseTooltip(expense)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="() => OpenExpenseDialog(expense)">
+                                                        @onclick="@(() => OpenExpenseDialog(expense))">
                                                 <FluentStack Orientation="Orientation.Vertical" 
                                                              VerticalGap="1" 
                                                              Style="align-items: flex-end;">
@@ -153,7 +154,7 @@
                                             <FluentCard Class="adhoc-payment-card" 
                                                         Title="@GetAdhocPaymentTooltip(adhocPayment)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="() => OpenAdhocPaymentDialog(adhocPayment)">
+                                                        @onclick="@(() => OpenAdhocPaymentDialog(adhocPayment))">
                                                 <FluentStack Orientation="Orientation.Vertical" 
                                                              VerticalGap="1" 
                                                              Style="align-items: flex-end;">
@@ -236,6 +237,24 @@
                     OnCancel="CloseBillScheduleDialog"
                     OnSave="SaveBillScheduleDialog"
                     OnDelete="DeleteBillSchedule" />
+
+<!-- Day Details Dialog -->
+<DayDetailsDialog IsVisible="@showDayDetailsDialog"
+                  Title="@GetDayDetailsTitle()"
+                  SelectedDate="@selectedDayForDetails"
+                  PaySchedules="@GetPaySchedulesForDay(selectedDayForDetails)"
+                  BillSchedules="@GetBillSchedulesForDay(selectedDayForDetails)"
+                  Expenses="@GetExpensesForDay(selectedDayForDetails)"
+                  AdhocPayments="@GetAdhocPaymentsForDay(selectedDayForDetails)"
+                  OnClose="CloseDayDetailsDialog"
+                  OnAddPaySchedule="() => AddNewPayScheduleForDay(selectedDayForDetails)"
+                  OnAddBillSchedule="() => AddNewBillScheduleForDay(selectedDayForDetails)"
+                  OnAddExpense="() => AddNewExpenseForDay(selectedDayForDetails)"
+                  OnAddPayment="() => AddNewPaymentForDay(selectedDayForDetails)"
+                  OnEditPaySchedule="EventCallback.Factory.Create<PayScheduleItem>(this, HandleEditPayScheduleFromDay)"
+                  OnEditBillSchedule="EventCallback.Factory.Create<BillScheduleItem>(this, HandleEditBillScheduleFromDay)"
+                  OnEditExpense="EventCallback.Factory.Create<ExpenseItem>(this, HandleEditExpenseFromDay)"
+                  OnEditAdhocPayment="EventCallback.Factory.Create<AdhocPaymentItem>(this, HandleEditAdhocPaymentFromDay)" />
 
 <style>
     .fluent-calendar-container {
@@ -534,6 +553,10 @@
     
     private bool showBillScheduleDialog = false;
     private ScheduleItemDialog.ScheduleItemDialogModel billScheduleDialogModel = new();
+    
+    // Day details dialog state
+    private bool showDayDetailsDialog = false;
+    private DateOnly selectedDayForDetails = DateOnly.MinValue;
     
     // Recurrence options
     private readonly List<string> payRecurrenceOptions = new() { "Weekly", "BiWeekly", "Monthly", "Custom" };
@@ -1339,6 +1362,107 @@
         }
     }
 
+    // Day details dialog methods
+    private void OpenDayDetailsDialog(DateOnly day)
+    {
+        selectedDayForDetails = day;
+        showDayDetailsDialog = true;
+        StateHasChanged();
+    }
+
+    private void CloseDayDetailsDialog()
+    {
+        showDayDetailsDialog = false;
+        selectedDayForDetails = DateOnly.MinValue;
+        StateHasChanged();
+    }
+
+    private string GetDayDetailsTitle()
+    {
+        if (selectedDayForDetails == DateOnly.MinValue)
+            return "Day Details";
+        
+        var isToday = selectedDayForDetails == DateOnly.FromDateTime(DateTime.Today);
+        var dayText = isToday ? "Today" : selectedDayForDetails.ToString("dddd, MMMM d, yyyy");
+        return $"{dayText}";
+    }
+
+    // Methods to add new items for a specific day
+    private void AddNewPayScheduleForDay(DateOnly date)
+    {
+        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        {
+            DateTime = date.ToDateTime(TimeOnly.MinValue),
+            Recurrence = "Monthly",
+            IsEditMode = false
+        };
+        CloseDayDetailsDialog();
+        showPayScheduleDialog = true;
+        StateHasChanged();
+    }
+
+    private void AddNewBillScheduleForDay(DateOnly date)
+    {
+        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        {
+            DateTime = date.ToDateTime(TimeOnly.MinValue),
+            Recurrence = "Monthly",
+            IsEditMode = false
+        };
+        CloseDayDetailsDialog();
+        showBillScheduleDialog = true;
+        StateHasChanged();
+    }
+
+    private void AddNewExpenseForDay(DateOnly date)
+    {
+        expenseDialogModel = new FinancialItemDialog.FinancialItemDialogModel
+        {
+            DateTime = date.ToDateTime(TimeOnly.MinValue),
+            IsEditMode = false
+        };
+        CloseDayDetailsDialog();
+        showExpenseDialog = true;
+        StateHasChanged();
+    }
+
+    private void AddNewPaymentForDay(DateOnly date)
+    {
+        adhocPaymentDialogModel = new FinancialItemDialog.FinancialItemDialogModel
+        {
+            DateTime = date.ToDateTime(TimeOnly.MinValue),
+            IsEditMode = false
+        };
+        CloseDayDetailsDialog();
+        showAdhocPaymentDialog = true;
+        StateHasChanged();
+    }
+
+    // Handler methods for day details dialog edit callbacks
+    private void HandleEditPayScheduleFromDay(PayScheduleItem paySchedule)
+    {
+        CloseDayDetailsDialog();
+        OpenPayScheduleDialog(paySchedule);
+    }
+    
+    private void HandleEditBillScheduleFromDay(BillScheduleItem billSchedule)
+    {
+        CloseDayDetailsDialog();
+        OpenBillScheduleDialog(billSchedule);
+    }
+    
+    private void HandleEditExpenseFromDay(ExpenseItem expense)
+    {
+        CloseDayDetailsDialog();
+        OpenExpenseDialog(expense);
+    }
+    
+    private void HandleEditAdhocPaymentFromDay(AdhocPaymentItem adhocPayment)
+    {
+        CloseDayDetailsDialog();
+        OpenAdhocPaymentDialog(adhocPayment);
+    }
+
     private CalendarMonth BuildCalendarMonth(int year, int month)
     {
         var firstDay = new DateTime(year, month, 1);
@@ -1410,23 +1534,5 @@
         public string MonthName { get; set; } = string.Empty;
         public List<List<DateOnly>> Weeks { get; set; } = new();
     }
-
-    // Data Models
-    private sealed record PayScheduleItem(Guid Id, DateOnly Anchor, string Currency, decimal Amount, int? DaysInterval, DateTime CreatedUtc, DateTime? UpdatedUtc, RecurrenceKind Recurrence);
-    
-    private sealed record BillScheduleItem(Guid Id, string Name, DateOnly Anchor, string Currency, decimal Amount, int Recurrence, DateTime CreatedUtc, DateTime? UpdatedUtc);
-    
-    private sealed record ExpenseItem(Guid Id, string Description, string Currency, decimal Amount, DateOnly Date, string? Category, DateTime CreatedUtc, DateTime? UpdatedUtc);
-    
-    private sealed record AdhocPaymentItem(Guid Id, string Description, string Currency, decimal Amount, DateOnly Date, string? Category, DateTime CreatedUtc, DateTime? UpdatedUtc);
-    
-    private enum RecurrenceKind { Weekly, Monthly, BiWeekly, Custom }
-
-    private sealed class PagedResult<TItem>
-    {
-        public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public long TotalCount { get; set; }
-    }
+}
 }
