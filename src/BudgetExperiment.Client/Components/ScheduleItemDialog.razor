@@ -1,4 +1,5 @@
 @inject IJSRuntime JS
+@using Microsoft.FluentUI.AspNetCore.Components
 
 <FluentDialog Hidden="@(!IsVisible)" 
               Modal="true" 
@@ -11,16 +12,19 @@
 
     <FluentDialogBody>
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-            <!-- Name/Description Field -->
-            <FluentTextField @bind-Value="Model.Name"
-                             Label="@NameLabel"
-                             Placeholder="@NamePlaceholder"
-                             Style="width: 100%;" />
-            @if (!string.IsNullOrEmpty(Model.NameError))
+            <!-- Name Field (for bills, pay schedules don't have names) -->
+            @if (ShowNameField)
             {
-                <FluentLabel Style="color: var(--palette-red-foreground-1); font-size: 12px;">
-                    @Model.NameError
-                </FluentLabel>
+                <FluentTextField @bind-Value="Model.Name"
+                                 Label="@NameLabel"
+                                 Placeholder="@NamePlaceholder"
+                                 Style="width: 100%;" />
+                @if (!string.IsNullOrEmpty(Model.NameError))
+                {
+                    <FluentLabel Style="color: var(--palette-red-foreground-1); font-size: 12px;">
+                        @Model.NameError
+                    </FluentLabel>
+                }
             }
 
             <!-- Amount -->
@@ -37,7 +41,7 @@
                 </FluentLabel>
             }
 
-            <!-- Date -->
+            <!-- Anchor Date -->
             <div style="display: flex; flex-direction: column;">
                 <FluentLabel Style="margin-bottom: 4px;">@DateLabel</FluentLabel>
                 <input type="date" value="@Model.DateString" 
@@ -51,27 +55,31 @@
                 </FluentLabel>
             }
 
-            <!-- Category (optional for expenses and adhoc payments) -->
-            @if (ShowCategoryField)
-            {
-                <FluentTextField @bind-Value="Model.Category"
-                                 Label="Category"
-                                 Placeholder="Optional category..."
-                                 Style="width: 100%;" />
-            }
+            <!-- Recurrence -->
+            <FluentSelect TOption="string" 
+                          @bind-Value="Model.Recurrence"
+                          Label="Recurrence"
+                          Style="width: 100%;">
+                @foreach (var option in RecurrenceOptions)
+                {
+                    <FluentOption Value="@option">@option</FluentOption>
+                }
+            </FluentSelect>
 
-            <!-- Recurrence (only for bills) -->
-            @if (ShowRecurrenceField)
+            <!-- Days Interval (for custom recurrence) -->
+            @if (ShowDaysIntervalField && Model.Recurrence == "Custom")
             {
-                <FluentSelect TOption="string" 
-                              @bind-Value="Model.Recurrence"
-                              Label="Recurrence"
-                              Style="width: 100%;">
-                    @foreach (var option in RecurrenceOptions)
-                    {
-                        <FluentOption Value="@option">@option</FluentOption>
-                    }
-                </FluentSelect>
+                <FluentNumberField @bind-Value="Model.DaysInterval"
+                                   Label="Days Interval"
+                                   Placeholder="Enter number of days..."
+                                   Min="1"
+                                   Style="width: 100%;" />
+                @if (!string.IsNullOrEmpty(Model.DaysIntervalError))
+                {
+                    <FluentLabel Style="color: var(--palette-red-foreground-1); font-size: 12px;">
+                        @Model.DaysIntervalError
+                    </FluentLabel>
+                }
             }
         </FluentStack>
     </FluentDialogBody>
@@ -84,7 +92,7 @@
                 {
                     <FluentButton Appearance="Appearance.Stealth" 
                                   OnClick="HandleDelete"
-                                  Disabled="@Model.IsSaving"
+                                  Disabled="@(Model.IsSaving || Model.IsDeleting)"
                                   Style="color: var(--palette-red-foreground-1);">
                         @if (Model.IsDeleting)
                         {
@@ -102,7 +110,7 @@
                 </FluentButton>
                 <FluentButton Appearance="Appearance.Accent" 
                               OnClick="OnSave"
-                              Disabled="@Model.IsSaving"
+                              Disabled="@(Model.IsSaving || Model.IsDeleting)"
                               Style="margin-left: 8px;">
                     @if (Model.IsSaving)
                     {
@@ -117,20 +125,20 @@
 
 @code {
     [Parameter] public bool IsVisible { get; set; } = false;
-    [Parameter] public string Title { get; set; } = "Edit Item";
+    [Parameter] public string Title { get; set; } = "Edit Schedule";
     [Parameter] public string NameLabel { get; set; } = "Name";
     [Parameter] public string NamePlaceholder { get; set; } = "Enter name...";
-    [Parameter] public string DateLabel { get; set; } = "Date";
+    [Parameter] public string DateLabel { get; set; } = "Anchor Date";
     [Parameter] public string SaveButtonText { get; set; } = "Save";
-    [Parameter] public bool ShowCategoryField { get; set; } = false;
-    [Parameter] public bool ShowRecurrenceField { get; set; } = false;
-    [Parameter] public List<string> RecurrenceOptions { get; set; } = new() { "Monthly" };
-    [Parameter] public FinancialItemDialogModel Model { get; set; } = new();
+    [Parameter] public bool ShowNameField { get; set; } = true;
+    [Parameter] public bool ShowDaysIntervalField { get; set; } = true;
+    [Parameter] public List<string> RecurrenceOptions { get; set; } = new() { "Weekly", "BiWeekly", "Monthly", "Custom" };
+    [Parameter] public ScheduleItemDialogModel Model { get; set; } = new();
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public EventCallback OnSave { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
 
-    public class FinancialItemDialogModel
+    public class ScheduleItemDialogModel
     {
         public Guid? Id { get; set; }
         public bool IsEditMode { get; set; } = false;
@@ -138,8 +146,8 @@
         public string Currency { get; set; } = "USD";
         public decimal? Amount { get; set; }
         public DateTime DateTime { get; set; } = DateTime.Today;
-        public string? Category { get; set; }
         public string Recurrence { get; set; } = "Monthly";
+        public int? DaysInterval { get; set; }
         public bool IsSaving { get; set; }
         public bool IsDeleting { get; set; }
 
@@ -158,14 +166,16 @@
         public string? NameError { get; set; }
         public string? AmountError { get; set; }
         public string? DateError { get; set; }
+        public string? DaysIntervalError { get; set; }
 
-        public bool HasErrors => NameError != null || AmountError != null || DateError != null;
+        public bool HasErrors => NameError != null || AmountError != null || DateError != null || DaysIntervalError != null;
 
         public void ClearErrors()
         {
             NameError = null;
             AmountError = null;
             DateError = null;
+            DaysIntervalError = null;
         }
 
         public bool Validate(bool requireName = true)
@@ -181,6 +191,9 @@
             if (DateTime == default)
                 DateError = "Date is required";
 
+            if (Recurrence == "Custom" && (!DaysInterval.HasValue || DaysInterval <= 0))
+                DaysIntervalError = "Days interval must be greater than 0 for custom recurrence";
+
             return !HasErrors;
         }
     }
@@ -189,12 +202,10 @@
     {
         if (OnDelete.HasDelegate)
         {
-            // Simple confirmation - you could enhance this with a proper confirmation dialog
-            var itemType = Title?.ToLower().Contains("payment") == true ? "payment" : "expense";
+            // Simple confirmation - detect type from title
+            var itemType = Title?.ToLower().Contains("bill") == true ? "bill schedule" : "pay schedule";
             var confirmMessage = $"Are you sure you want to delete this {itemType}?";
             
-            // Note: This uses the browser's confirm dialog. For a more polished solution,
-            // you could create a custom FluentUI confirmation dialog component
             var confirmed = await JS.InvokeAsync<bool>("confirm", confirmMessage);
             
             if (confirmed)

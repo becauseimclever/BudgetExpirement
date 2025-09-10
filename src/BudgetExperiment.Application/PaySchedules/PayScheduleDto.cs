@@ -8,7 +8,7 @@ using BudgetExperiment.Domain;
 public sealed record PayScheduleDto(
     Guid Id,
     DateOnly Anchor,
-    PaySchedule.RecurrenceKind Recurrence,
+    RecurrencePattern Recurrence,
     string Currency,
     decimal Amount,
     int? DaysInterval,

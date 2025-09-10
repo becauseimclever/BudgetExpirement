@@ -3,18 +3,18 @@ namespace BudgetExperiment.Domain;
 /// <summary>
 /// Represents a recurring pay schedule (weekly or monthly) anchored to a specific date.
 /// </summary>
-public sealed class PaySchedule
+public sealed class PaySchedule : ISchedule
 {
     private PaySchedule()
     {
         // For EF Core
         this.Id = Guid.Empty;
         this.Anchor = default;
-        this.Recurrence = RecurrenceKind.Weekly;
+        this.Recurrence = RecurrencePattern.Weekly;
         this.Amount = MoneyValue.Zero("USD");
     }
 
-    private PaySchedule(Guid id, DateOnly anchor, RecurrenceKind recurrence, MoneyValue amount, int? daysInterval)
+    private PaySchedule(Guid id, DateOnly anchor, RecurrencePattern recurrence, MoneyValue amount, int? daysInterval)
     {
         this.Id = id;
         this.Anchor = anchor;
@@ -22,22 +22,6 @@ public sealed class PaySchedule
         this.Amount = amount;
         this.DaysInterval = daysInterval;
         this.CreatedUtc = DateTime.UtcNow;
-    }
-
-    /// <summary>Recurrence kind.</summary>
-    public enum RecurrenceKind
-    {
-        /// <summary>Occurs every 7 days.</summary>
-        Weekly,
-
-        /// <summary>Occurs once per calendar month, clamped to month end if needed.</summary>
-        Monthly,
-
-        /// <summary>Occurs every 14 days.</summary>
-        BiWeekly,
-
-        /// <summary>Custom fixed day interval (uses <see cref="DaysInterval"/>).</summary>
-        Custom,
     }
 
     /// <summary>Gets the anchor date (first occurrence).</summary>
@@ -59,7 +43,7 @@ public sealed class PaySchedule
     }
 
     /// <summary>Gets the recurrence pattern.</summary>
-    public RecurrenceKind Recurrence
+    public RecurrencePattern Recurrence
     {
         get; private set;
     }
@@ -84,26 +68,22 @@ public sealed class PaySchedule
 
     /// <summary>Create a weekly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
-    /// <returns>New <see cref="PaySchedule"/>.</returns>
     /// <param name="amount">Pay amount.</param>
     /// <returns>Configured schedule.</returns>
-    public static PaySchedule CreateWeekly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrenceKind.Weekly, amount, null);
+    public static PaySchedule CreateWeekly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrencePattern.Weekly, amount, null);
 
     /// <summary>Create a monthly pay schedule.</summary>
     /// <param name="anchor">Anchor (first occurrence) date.</param>
-    /// <returns>New <see cref="PaySchedule"/>.</returns>
     /// <param name="amount">Pay amount.</param>
     /// <returns>Schedule.</returns>
-    public static PaySchedule CreateMonthly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrenceKind.Monthly, amount, null);
+    public static PaySchedule CreateMonthly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrencePattern.Monthly, amount, null);
 
-    /// <summary>Create a bi-weekly pay schedule (every 14 days).</summary>
     /// <summary>Create a bi-weekly (14 day) schedule.</summary>
     /// <param name="anchor">First occurrence.</param>
     /// <param name="amount">Pay amount.</param>
     /// <returns>Schedule.</returns>
-    public static PaySchedule CreateBiWeekly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrenceKind.BiWeekly, amount, null);
+    public static PaySchedule CreateBiWeekly(DateOnly anchor, MoneyValue amount) => new(Guid.NewGuid(), anchor, RecurrencePattern.BiWeekly, amount, null);
 
-    /// <summary>Create a custom fixed-day interval schedule.</summary>
     /// <summary>Create a custom fixed-interval schedule.</summary>
     /// <param name="anchor">First occurrence.</param>
     /// <param name="amount">Pay amount.</param>
@@ -126,7 +106,28 @@ public sealed class PaySchedule
             return CreateBiWeekly(anchor, amount);
         }
 
-        return new(Guid.NewGuid(), anchor, RecurrenceKind.Custom, amount, intervalDays);
+        return new(Guid.NewGuid(), anchor, RecurrencePattern.Custom, amount, intervalDays);
+    }
+
+    /// <summary>Create a pay schedule with any supported recurrence pattern.</summary>
+    /// <param name="anchor">First occurrence date.</param>
+    /// <param name="amount">Pay amount.</param>
+    /// <param name="pattern">Recurrence pattern.</param>
+    /// <param name="customIntervalDays">Custom interval days (required for Custom pattern).</param>
+    /// <returns>Schedule.</returns>
+    public static PaySchedule Create(DateOnly anchor, MoneyValue amount, RecurrencePattern pattern, int? customIntervalDays = null)
+    {
+        return pattern switch
+        {
+            RecurrencePattern.Weekly => CreateWeekly(anchor, amount),
+            RecurrencePattern.BiWeekly => CreateBiWeekly(anchor, amount),
+            RecurrencePattern.Monthly => CreateMonthly(anchor, amount),
+            RecurrencePattern.Quarterly => new(Guid.NewGuid(), anchor, pattern, amount, null),
+            RecurrencePattern.SemiAnnual => new(Guid.NewGuid(), anchor, pattern, amount, null),
+            RecurrencePattern.Annual => new(Guid.NewGuid(), anchor, pattern, amount, null),
+            RecurrencePattern.Custom => CreateCustom(anchor, amount, customIntervalDays ?? throw new DomainException("Custom interval days required for Custom pattern.")),
+            _ => throw new ArgumentOutOfRangeException(nameof(pattern), pattern, "Unsupported recurrence pattern."),
+        };
     }
 
     /// <summary>Marks the entity as updated (for future mutable operations).</summary>
@@ -141,84 +142,40 @@ public sealed class PaySchedule
     /// <param name="rangeStart">Range start date (inclusive).</param>
     /// <param name="rangeEnd">Range end date (inclusive).</param>
     /// <returns>Sequence of occurrence dates.</returns>
-    /// <exception cref="DomainException">When rangeStart &gt; rangeEnd.</exception>
     public IEnumerable<DateOnly> GetOccurrences(DateOnly rangeStart, DateOnly rangeEnd)
     {
-        if (rangeEnd < rangeStart)
-        {
-            throw new DomainException("Start date must be before or equal to end date.");
-        }
-
-        if (rangeEnd < this.Anchor)
-        {
-            yield break; // whole range before anchor
-        }
-
-        IEnumerable<DateOnly> iterator = this.Recurrence switch
-        {
-            RecurrenceKind.Weekly => this.EnumerateFixedInterval(rangeStart, rangeEnd, 7),
-            RecurrenceKind.BiWeekly => this.EnumerateFixedInterval(rangeStart, rangeEnd, 14),
-            RecurrenceKind.Monthly => this.EnumerateMonthly(rangeStart, rangeEnd),
-            RecurrenceKind.Custom when this.DaysInterval.HasValue => this.EnumerateFixedInterval(rangeStart, rangeEnd, this.DaysInterval.Value),
-            _ => throw new DomainException("Unsupported recurrence kind."),
-        };
-
-        foreach (var d in iterator)
-        {
-            yield return d;
-        }
+        return ScheduleCalculator.CalculateOccurrences(this.Anchor, this.Recurrence, this.DaysInterval, rangeStart, rangeEnd);
     }
 
-    private static DateOnly AddMonthClamped(DateOnly date, int months, int anchorDay)
+    /// <summary>Update the pay amount.</summary>
+    /// <param name="amount">New pay amount.</param>
+    public void UpdateAmount(MoneyValue amount)
     {
-        var newMonthDate = date.AddMonths(months);
-        int daysInMonth = DateTime.DaysInMonth(newMonthDate.Year, newMonthDate.Month);
-        int day = Math.Min(anchorDay, daysInMonth);
-        return new DateOnly(newMonthDate.Year, newMonthDate.Month, day);
+        ArgumentNullException.ThrowIfNull(amount);
+        this.Amount = amount;
+        this.MarkUpdated();
     }
 
-    private IEnumerable<DateOnly> EnumerateFixedInterval(DateOnly rangeStart, DateOnly rangeEnd, int interval)
+    /// <summary>Update the anchor date.</summary>
+    /// <param name="anchor">New anchor date.</param>
+    public void UpdateAnchor(DateOnly anchor)
     {
-        if (interval < 1)
-        {
-            yield break;
-        }
-
-        DateOnly first = this.Anchor;
-        if (rangeStart > first)
-        {
-            var daysDiff = rangeStart.DayNumber - this.Anchor.DayNumber;
-            var remainder = daysDiff % interval;
-            first = remainder == 0 ? rangeStart : rangeStart.AddDays(interval - remainder);
-        }
-
-        for (var current = first; current <= rangeEnd; current = current.AddDays(interval))
-        {
-            if (current >= rangeStart)
-            {
-                yield return current;
-            }
-        }
+        this.Anchor = anchor;
+        this.MarkUpdated();
     }
 
-    private IEnumerable<DateOnly> EnumerateMonthly(DateOnly rangeStart, DateOnly rangeEnd)
+    /// <summary>Update the recurrence pattern.</summary>
+    /// <param name="pattern">New recurrence pattern.</param>
+    /// <param name="customIntervalDays">Custom interval days (required for Custom pattern).</param>
+    public void UpdateRecurrence(RecurrencePattern pattern, int? customIntervalDays = null)
     {
-        var anchorDay = this.Anchor.Day;
-        DateOnly current = this.Anchor;
-
-        while (current < rangeStart)
+        if (pattern == RecurrencePattern.Custom && (!customIntervalDays.HasValue || customIntervalDays.Value <= 0))
         {
-            current = AddMonthClamped(current, 1, anchorDay);
+            throw new DomainException("Custom recurrence pattern requires a valid interval in days.");
         }
 
-        while (current <= rangeEnd)
-        {
-            if (current >= rangeStart)
-            {
-                yield return current;
-            }
-
-            current = AddMonthClamped(current, 1, anchorDay);
-        }
+        this.Recurrence = pattern;
+        this.DaysInterval = pattern == RecurrencePattern.Custom ? customIntervalDays : null;
+        this.MarkUpdated();
     }
 }

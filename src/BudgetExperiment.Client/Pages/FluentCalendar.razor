@@ -192,7 +192,8 @@
                      ShowRecurrenceField="false"
                      Model="@expenseDialogModel"
                      OnCancel="CloseExpenseDialog"
-                     OnSave="SaveExpenseDialog" />
+                     OnSave="SaveExpenseDialog"
+                     OnDelete="DeleteExpense" />
 
 <!-- Edit Adhoc Payment Dialog -->
 <FinancialItemDialog IsVisible="@showAdhocPaymentDialog"
@@ -205,7 +206,36 @@
                      ShowRecurrenceField="false"
                      Model="@adhocPaymentDialogModel"
                      OnCancel="CloseAdhocPaymentDialog"
-                     OnSave="SaveAdhocPaymentDialog" />
+                     OnSave="SaveAdhocPaymentDialog"
+                     OnDelete="DeleteAdhocPayment" />
+
+<!-- Edit Pay Schedule Dialog -->
+<ScheduleItemDialog IsVisible="@showPayScheduleDialog"
+                    Title="@(payScheduleDialogModel.IsEditMode ? "Edit Pay Schedule" : "Add New Pay Schedule")"
+                    DateLabel="Pay Date"
+                    SaveButtonText="@(payScheduleDialogModel.IsEditMode ? "Update Pay Schedule" : "Add Pay Schedule")"
+                    ShowNameField="false"
+                    ShowDaysIntervalField="true"
+                    RecurrenceOptions="@payRecurrenceOptions"
+                    Model="@payScheduleDialogModel"
+                    OnCancel="ClosePayScheduleDialog"
+                    OnSave="SavePayScheduleDialog"
+                    OnDelete="DeletePaySchedule" />
+
+<!-- Edit Bill Schedule Dialog -->
+<ScheduleItemDialog IsVisible="@showBillScheduleDialog"
+                    Title="@(billScheduleDialogModel.IsEditMode ? "Edit Bill Schedule" : "Add New Bill Schedule")"
+                    NameLabel="Bill Name"
+                    NamePlaceholder="Enter bill name..."
+                    DateLabel="Due Date"
+                    SaveButtonText="@(billScheduleDialogModel.IsEditMode ? "Update Bill" : "Add Bill")"
+                    ShowNameField="true"
+                    ShowDaysIntervalField="false"
+                    RecurrenceOptions="@billRecurrenceOptions"
+                    Model="@billScheduleDialogModel"
+                    OnCancel="CloseBillScheduleDialog"
+                    OnSave="SaveBillScheduleDialog"
+                    OnDelete="DeleteBillSchedule" />
 
 <style>
     .fluent-calendar-container {
@@ -498,6 +528,16 @@
     
     private bool showAdhocPaymentDialog = false;
     private FinancialItemDialog.FinancialItemDialogModel adhocPaymentDialogModel = new();
+
+    private bool showPayScheduleDialog = false;
+    private ScheduleItemDialog.ScheduleItemDialogModel payScheduleDialogModel = new();
+    
+    private bool showBillScheduleDialog = false;
+    private ScheduleItemDialog.ScheduleItemDialogModel billScheduleDialogModel = new();
+    
+    // Recurrence options
+    private readonly List<string> payRecurrenceOptions = new() { "Weekly", "BiWeekly", "Monthly", "Custom" };
+    private readonly List<string> billRecurrenceOptions = new() { "Weekly", "Monthly" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -887,14 +927,32 @@
     
     private void OpenPayScheduleDialog(PayScheduleItem paySchedule)
     {
-        // For now, just show a simple message - pay schedules need a different dialog
-        Console.WriteLine($"Clicked on pay schedule: {paySchedule.Id}");
+        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        {
+            Id = paySchedule.Id,
+            Amount = paySchedule.Amount,
+            DateTime = paySchedule.Anchor.ToDateTime(TimeOnly.MinValue),
+            Recurrence = GetRecurrenceDisplayName(paySchedule.Recurrence),
+            DaysInterval = paySchedule.DaysInterval,
+            IsEditMode = true
+        };
+        showPayScheduleDialog = true;
+        StateHasChanged();
     }
     
     private void OpenBillScheduleDialog(BillScheduleItem billSchedule)
     {
-        // For now, just show a simple message - bill schedules need a different dialog  
-        Console.WriteLine($"Clicked on bill schedule: {billSchedule.Name}");
+        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        {
+            Id = billSchedule.Id,
+            Name = billSchedule.Name,
+            Amount = billSchedule.Amount,
+            DateTime = billSchedule.Anchor.ToDateTime(TimeOnly.MinValue),
+            Recurrence = GetBillRecurrenceDisplayName(billSchedule.Recurrence),
+            IsEditMode = true
+        };
+        showBillScheduleDialog = true;
+        StateHasChanged();
     }
 
     private void OpenExpenseDialog(ExpenseItem expense)
@@ -1039,6 +1097,244 @@
         finally
         {
             adhocPaymentDialogModel.IsSaving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteExpense()
+    {
+        if (!expenseDialogModel.IsEditMode || !expenseDialogModel.Id.HasValue)
+        {
+            return;
+        }
+
+        expenseDialogModel.IsDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/v1/expenses/{expenseDialogModel.Id.Value}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear cache and reload current month
+                expenseCache.Clear();
+                await CacheExpenses(currentMonth.Year, currentMonth.Month);
+                CloseExpenseDialog();
+            }
+            else
+            {
+                Console.WriteLine($"Failed to delete expense: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting expense: {ex.Message}");
+        }
+        finally
+        {
+            expenseDialogModel.IsDeleting = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteAdhocPayment()
+    {
+        if (!adhocPaymentDialogModel.IsEditMode || !adhocPaymentDialogModel.Id.HasValue)
+        {
+            return;
+        }
+
+        adhocPaymentDialogModel.IsDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/v1/adhoc-payments/{adhocPaymentDialogModel.Id.Value}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear cache and reload current month
+                adhocPaymentCache.Clear();
+                await CacheAdhocPayments(currentMonth.Year, currentMonth.Month);
+                CloseAdhocPaymentDialog();
+            }
+            else
+            {
+                Console.WriteLine($"Failed to delete adhoc payment: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting adhoc payment: {ex.Message}");
+        }
+        finally
+        {
+            adhocPaymentDialogModel.IsDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+    // Helper methods for recurrence display
+    private string GetRecurrenceDisplayName(RecurrenceKind recurrence)
+    {
+        return recurrence.ToString();
+    }
+
+    private string GetBillRecurrenceDisplayName(int recurrence)
+    {
+        return recurrence switch
+        {
+            0 => "Weekly",
+            1 => "BiWeekly", 
+            2 => "Monthly",
+            3 => "Quarterly",
+            _ => "Monthly"
+        };
+    }
+
+    // Dialog close methods
+    private void ClosePayScheduleDialog()
+    {
+        showPayScheduleDialog = false;
+        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel();
+        StateHasChanged();
+    }
+
+    private void CloseBillScheduleDialog()
+    {
+        showBillScheduleDialog = false;
+        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel();
+        StateHasChanged();
+    }
+
+    // Dialog save methods
+    private async Task SavePayScheduleDialog()
+    {
+        if (!payScheduleDialogModel.Validate(requireName: false))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        payScheduleDialogModel.IsSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (payScheduleDialogModel.IsEditMode && payScheduleDialogModel.Id.HasValue)
+            {
+                // TODO: Implement pay schedule update when API is available
+                Console.WriteLine($"Would update pay schedule: {payScheduleDialogModel.Id.Value}");
+                await Task.Delay(100); // Temporary to satisfy async requirement
+                ClosePayScheduleDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating pay schedule: {ex.Message}");
+        }
+        finally
+        {
+            payScheduleDialogModel.IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveBillScheduleDialog()
+    {
+        if (!billScheduleDialogModel.Validate(requireName: true))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        billScheduleDialogModel.IsSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (billScheduleDialogModel.IsEditMode && billScheduleDialogModel.Id.HasValue)
+            {
+                // TODO: Implement bill schedule update when API is available
+                Console.WriteLine($"Would update bill schedule: {billScheduleDialogModel.Id.Value}");
+                await Task.Delay(100); // Temporary to satisfy async requirement
+                CloseBillScheduleDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating bill schedule: {ex.Message}");
+        }
+        finally
+        {
+            billScheduleDialogModel.IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // Dialog delete methods
+    private async Task DeletePaySchedule()
+    {
+        if (!payScheduleDialogModel.IsEditMode || !payScheduleDialogModel.Id.HasValue)
+        {
+            return;
+        }
+
+        payScheduleDialogModel.IsDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Implement pay schedule delete when API is available
+            Console.WriteLine($"Would delete pay schedule: {payScheduleDialogModel.Id.Value}");
+            await Task.Delay(100); // Temporary to satisfy async requirement
+            ClosePayScheduleDialog();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting pay schedule: {ex.Message}");
+        }
+        finally
+        {
+            payScheduleDialogModel.IsDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteBillSchedule()
+    {
+        if (!billScheduleDialogModel.IsEditMode || !billScheduleDialogModel.Id.HasValue)
+        {
+            return;
+        }
+
+        billScheduleDialogModel.IsDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/v1/billschedules/{billScheduleDialogModel.Id.Value}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear cache and reload current month
+                billOccurrenceCache.Clear();
+                await CacheBillOccurrences(currentMonth.Year, currentMonth.Month);
+                CloseBillScheduleDialog();
+            }
+            else
+            {
+                Console.WriteLine($"Failed to delete bill schedule: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting bill schedule: {ex.Message}");
+        }
+        finally
+        {
+            billScheduleDialogModel.IsDeleting = false;
             StateHasChanged();
         }
     }
