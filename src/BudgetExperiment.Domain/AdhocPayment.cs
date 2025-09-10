@@ -59,22 +59,22 @@ public sealed class AdhocPayment
     /// <summary>
     /// Gets the description of the payment.
     /// </summary>
-    public string Description { get; }
+    public string Description { get; private set; }
 
     /// <summary>
     /// Gets the money value.
     /// </summary>
-    public MoneyValue Money { get; }
+    public MoneyValue Money { get; private set; }
 
     /// <summary>
     /// Gets the date of the payment.
     /// </summary>
-    public DateOnly Date { get; }
+    public DateOnly Date { get; private set; }
 
     /// <summary>
     /// Gets the optional category.
     /// </summary>
-    public string? Category { get; }
+    public string? Category { get; private set; }
 
     /// <summary>
     /// Gets when this record was created in UTC.
@@ -97,6 +97,32 @@ public sealed class AdhocPayment
     public static AdhocPayment Create(string description, MoneyValue money, DateOnly date, string? category = null)
     {
         return new AdhocPayment(Guid.NewGuid(), description, money, date, category);
+    }
+
+    /// <summary>
+    /// Updates the adhoc payment details.
+    /// </summary>
+    /// <param name="description">The new description.</param>
+    /// <param name="money">The new money value.</param>
+    /// <param name="date">The new date.</param>
+    /// <param name="category">The new category.</param>
+    public void Update(string description, MoneyValue money, DateOnly date, string? category = null)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            throw new DomainException("AdhocPayment description cannot be null or empty.");
+        }
+
+        if (money.Amount <= 0)
+        {
+            throw new DomainException("AdhocPayment amount must be greater than zero.");
+        }
+
+        this.Description = description.Trim();
+        this.Money = money;
+        this.Date = date;
+        this.Category = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
+        this.UpdatedUtc = DateTime.UtcNow;
     }
 
     /// <summary>

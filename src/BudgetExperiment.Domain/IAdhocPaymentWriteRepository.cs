@@ -6,6 +6,13 @@ namespace BudgetExperiment.Domain;
 public interface IAdhocPaymentWriteRepository : IWriteRepository<AdhocPayment>
 {
     /// <summary>
+    /// Updates an existing adhoc payment.
+    /// </summary>
+    /// <param name="entity">The adhoc payment to update.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task UpdateAsync(AdhocPayment entity);
+
+    /// <summary>
     /// Deletes an existing adhoc payment.
     /// </summary>
     /// <param name="entity">The adhoc payment to delete.</param>

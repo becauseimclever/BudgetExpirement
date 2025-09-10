@@ -67,6 +67,41 @@ public sealed class AdhocPaymentService
     }
 
     /// <summary>
+    /// Gets all adhoc payments with pagination.
+    /// </summary>
+    /// <param name="skip">Number of items to skip.</param>
+    /// <param name="take">Number of items to take.</param>
+    /// <returns>List of adhoc payments.</returns>
+    public async Task<IReadOnlyList<AdhocPaymentResponse>> GetAllAsync(int skip = 0, int take = 1000)
+    {
+        var adhocPayments = await this._readRepository.ListAsync(skip, take);
+        return adhocPayments.Select(ToResponse).ToList();
+    }
+
+    /// <summary>
+    /// Updates an existing adhoc payment.
+    /// </summary>
+    /// <param name="id">The adhoc payment ID.</param>
+    /// <param name="request">The update request.</param>
+    /// <returns>The updated adhoc payment response, or null if not found.</returns>
+    public async Task<AdhocPaymentResponse?> UpdateAsync(Guid id, UpdateAdhocPaymentRequest request)
+    {
+        var adhocPayment = await this._readRepository.GetByIdAsync(id);
+        if (adhocPayment == null)
+        {
+            return null;
+        }
+
+        var money = MoneyValue.Create(request.Currency, request.Amount);
+        adhocPayment.Update(request.Description, money, request.Date, request.Category);
+
+        await this._writeRepository.UpdateAsync(adhocPayment);
+        await this._unitOfWork.SaveChangesAsync();
+
+        return ToResponse(adhocPayment);
+    }
+
+    /// <summary>
     /// Deletes an adhoc payment.
     /// </summary>
     /// <param name="id">The adhoc payment ID.</param>

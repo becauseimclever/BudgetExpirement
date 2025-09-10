@@ -1,20 +1,17 @@
-@page "/fluent-bills"
+@page "/fluent-expenses"
 @inject HttpClient Http
 @inject IJSRuntime JS
-@using System.Net.Http.Json
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.FluentUI.AspNetCore.Components
 
-<PageTitle>Bills Management</PageTitle>
+<PageTitle>Expenses Management</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="padding: 24px; max-width: 1400px; margin: 0 auto;">
     <!-- Header -->
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
         <FluentLabel Typo="Typography.PageTitle" Style="color: var(--neutral-foreground-primary); font-weight: 600;">
-            Bills Management
+            Expenses Management
         </FluentLabel>
         <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary);">
-            Manage your recurring bills with modern FluentUI components
+            Track your expenses with modern FluentUI components
         </FluentLabel>
     </FluentStack>
 
@@ -23,7 +20,7 @@
         <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="padding: 48px;">
             <FluentProgressRing />
             <FluentLabel Typo="Typography.Body" Style="margin-left: 12px; color: var(--neutral-foreground-secondary);">
-                Loading bills...
+                Loading expenses...
             </FluentLabel>
         </FluentStack>
     }
@@ -36,48 +33,59 @@
                          VerticalAlignment="VerticalAlignment.Center" 
                          Style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
                 <FluentLabel Typo="Typography.H6">
-                    Bills (@bills.Count)
+                    Expenses (@expenses.Count)
                 </FluentLabel>
                 <FluentButton Appearance="Appearance.Accent" 
                               OnClick="OpenAddDialog"
                               Style="margin-left: auto;">
-                    ➕ Add New Bill
+                    ➕ Add New Expense
                 </FluentButton>
             </FluentStack>
 
-            <!-- Bills Data Grid -->
-            <FluentDataGrid Items="@bills.AsQueryable()" Style="width: 100%;" GridTemplateColumns="3fr 1fr 1fr 1fr 140px">
-                <PropertyColumn Property="@(c => c.Name)" Title="Bill Name" Sortable="true" />
+            <!-- Expenses Data Grid -->
+            <FluentDataGrid Items="@expenses.AsQueryable()" Style="width: 100%;" GridTemplateColumns="3fr 1fr 1fr 1fr 1fr 140px">
+                <PropertyColumn Property="@(c => c.Description)" Title="Description" Sortable="true" />
                 <TemplateColumn Title="Amount" Sortable="true">
-                    <ChildContent Context="bill">
-                        <FluentLabel Style="font-weight: 600; color: var(--palette-red-foreground-1);">
-                            $@bill.Amount.ToString("N2")
+                    <ChildContent Context="expense">
+                        <FluentLabel Style="font-weight: 600; color: var(--palette-orange-foreground-1);">
+                            $@expense.Amount.ToString("N2")
                         </FluentLabel>
                     </ChildContent>
                 </TemplateColumn>
-                <TemplateColumn Title="Due Date" Sortable="true">
-                    <ChildContent Context="bill">
+                <TemplateColumn Title="Date" Sortable="true">
+                    <ChildContent Context="expense">
                         <FluentLabel>
-                            @bill.Anchor.ToString("MMM dd, yyyy")
+                            @expense.Date.ToString("MMM dd, yyyy")
                         </FluentLabel>
                     </ChildContent>
                 </TemplateColumn>
-                <TemplateColumn Title="Recurrence" Sortable="true">
-                    @GetRecurrenceDisplayName(context.Recurrence)
+                <TemplateColumn Title="Category" Sortable="true">
+                    <ChildContent Context="expense">
+                        <FluentLabel>
+                            @(expense.Category ?? "No Category")
+                        </FluentLabel>
+                    </ChildContent>
+                </TemplateColumn>
+                <TemplateColumn Title="Currency" Sortable="true">
+                    <ChildContent Context="expense">
+                        <FluentLabel>
+                            @expense.Currency
+                        </FluentLabel>
+                    </ChildContent>
                 </TemplateColumn>
                 <TemplateColumn Title="Actions">
-                    <ChildContent Context="bill">
+                    <ChildContent Context="expense">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
                             <FluentButton Appearance="Appearance.Stealth" 
                                           Size="ButtonSize.Small"
-                                          OnClick="@(() => OpenEditDialog(bill))"
-                                          Title="Edit bill">
+                                          OnClick="@(() => OpenEditDialog(expense))"
+                                          Title="Edit expense">
                                 ✏️
                             </FluentButton>
                             <FluentButton Appearance="Appearance.Stealth" 
                                           Size="ButtonSize.Small"
-                                          OnClick="@(() => DeleteBill(bill))"
-                                          Title="Delete bill"
+                                          OnClick="@(() => DeleteExpense(expense))"
+                                          Title="Delete expense"
                                           Style="color: var(--palette-red-foreground-1);">
                                 🗑️
                             </FluentButton>
@@ -86,16 +94,16 @@
                 </TemplateColumn>
             </FluentDataGrid>
 
-            @if (!bills.Any())
+            @if (!expenses.Any())
             {
                 <FluentStack Orientation="Orientation.Vertical" 
                              HorizontalAlignment="HorizontalAlignment.Center" 
                              Style="padding: 48px; text-align: center;">
                     <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); margin-bottom: 16px;">
-                        No bills found. Add your first bill to get started.
+                        No expenses found. Add your first expense to get started.
                     </FluentLabel>
                     <FluentButton Appearance="Appearance.Accent" OnClick="OpenAddDialog">
-                        ➕ Add Your First Bill
+                        ➕ Add Your First Expense
                     </FluentButton>
                 </FluentStack>
             }
@@ -103,19 +111,18 @@
     }
 </FluentStack>
 
-<!-- Add/Edit Bill Dialog -->
+<!-- Add/Edit Expense Dialog -->
 <FinancialItemDialog IsVisible="@showDialog"
-                     Title="@(dialogBill.IsEditMode ? "Edit Bill" : "Add New Bill")"
-                     NameLabel="Bill Name"
-                     NamePlaceholder="Enter bill name..."
-                     DateLabel="Due Date"
-                     SaveButtonText="@(dialogBill.IsEditMode ? "Update Bill" : "Add Bill")"
-                     ShowCategoryField="false"
-                     ShowRecurrenceField="true"
-                     RecurrenceOptions="@recurrenceOptions"
-                     Model="@dialogBill"
+                     Title="@(dialogExpense.IsEditMode ? "Edit Expense" : "Add New Expense")"
+                     NameLabel="Description"
+                     NamePlaceholder="Enter expense description..."
+                     DateLabel="Expense Date"
+                     SaveButtonText="@(dialogExpense.IsEditMode ? "Update Expense" : "Add Expense")"
+                     ShowCategoryField="true"
+                     ShowRecurrenceField="false"
+                     Model="@dialogExpense"
                      OnCancel="CloseDialog"
-                     OnSave="SaveBill" />
+                     OnSave="SaveExpense" />
 
 <!-- Toast Messages -->
 @if (toastMessages.Count > 0)
@@ -155,39 +162,34 @@
 </style>
 
 @code {
-    private List<BillScheduleItem> bills = new();
+    private List<ExpenseItem> expenses = new();
     private bool isLoading = true;
     private bool showDialog = false;
-    private FinancialItemDialog.FinancialItemDialogModel dialogBill = new();
+    private FinancialItemDialog.FinancialItemDialogModel dialogExpense = new();
     private readonly List<ToastMessage> toastMessages = new();
     private int nextToastId = 1;
-    
-    private readonly List<string> recurrenceOptions = new()
-    {
-        "Weekly", "BiWeekly", "Monthly", "Quarterly", "SemiAnnual", "Annual"
-    };
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBills();
+        await LoadExpenses();
     }
 
-    private async Task LoadBills()
+    private async Task LoadExpenses()
     {
         isLoading = true;
         StateHasChanged();
 
         try
         {
-            var result = await Http.GetFromJsonAsync<PagedResult<BillScheduleItem>>("api/v1/billschedules?page=1&pageSize=100");
-            if (result?.Items != null)
-            {
-                bills = result.Items.ToList();
-            }
+            // Load expenses for the current month as an example
+            var startDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-30));
+            var endDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+            
+            expenses = await Http.GetFromJsonAsync<List<ExpenseItem>>($"api/v1/expenses/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}") ?? new List<ExpenseItem>();
         }
         catch (Exception ex)
         {
-            ShowToast($"Error loading bills: {ex.Message}", true);
+            ShowToast($"Error loading expenses: {ex.Message}", true);
         }
         finally
         {
@@ -198,26 +200,25 @@
 
     private void OpenAddDialog()
     {
-        dialogBill = new FinancialItemDialog.FinancialItemDialogModel
+        dialogExpense = new FinancialItemDialog.FinancialItemDialogModel
         {
             Currency = "USD",
-            Recurrence = "Monthly",
             DateTime = DateTime.Today
         };
         showDialog = true;
         StateHasChanged();
     }
 
-    private void OpenEditDialog(BillScheduleItem bill)
+    private void OpenEditDialog(ExpenseItem expense)
     {
-        dialogBill = new FinancialItemDialog.FinancialItemDialogModel
+        dialogExpense = new FinancialItemDialog.FinancialItemDialogModel
         {
-            Id = bill.Id,
-            Name = bill.Name,
-            Currency = bill.Currency,
-            Amount = bill.Amount,
-            Recurrence = GetRecurrenceDisplayName(bill.Recurrence),
-            DateTime = bill.Anchor.ToDateTime(TimeOnly.MinValue),
+            Id = expense.Id,
+            Name = expense.Description,
+            Currency = expense.Currency,
+            Amount = expense.Amount,
+            DateTime = expense.Date.ToDateTime(TimeOnly.MinValue),
+            Category = expense.Category,
             IsEditMode = true
         };
         showDialog = true;
@@ -227,118 +228,110 @@
     private void CloseDialog()
     {
         showDialog = false;
-        dialogBill = new FinancialItemDialog.FinancialItemDialogModel
+        dialogExpense = new FinancialItemDialog.FinancialItemDialogModel
         {
             Currency = "USD",
-            Recurrence = "Monthly",
             DateTime = DateTime.Today
         };
         StateHasChanged();
     }
 
-    private async Task SaveBill()
+    private async Task SaveExpense()
     {
-        if (!ValidateDialogBill())
+        if (!dialogExpense.Validate(requireName: true))
         {
             StateHasChanged();
             return;
         }
 
-        dialogBill.IsSaving = true;
+        dialogExpense.IsSaving = true;
         StateHasChanged();
 
         try
         {
-            if (dialogBill.IsEditMode && dialogBill.Id.HasValue)
+            if (dialogExpense.IsEditMode && dialogExpense.Id.HasValue)
             {
-                // Update existing bill
-                var recurrenceEnum = Enum.Parse<BillRecurrenceKind>(dialogBill.Recurrence!);
-                var updateRequest = new UpdateBillScheduleRequest
+                // Update existing expense
+                var updateRequest = new UpdateExpenseRequest
                 {
-                    Name = dialogBill.Name!.Trim(),
-                    Currency = "USD", // Always USD for now
-                    Amount = dialogBill.Amount!.Value,
-                    Anchor = DateOnly.FromDateTime(dialogBill.DateTime),
-                    Recurrence = (int)recurrenceEnum
+                    Description = dialogExpense.Name!.Trim(),
+                    Currency = dialogExpense.Currency,
+                    Amount = dialogExpense.Amount!.Value,
+                    Date = DateOnly.FromDateTime(dialogExpense.DateTime),
+                    Category = string.IsNullOrWhiteSpace(dialogExpense.Category) ? null : dialogExpense.Category.Trim()
                 };
 
-                var response = await Http.PutAsJsonAsync($"api/v1/billschedules/{dialogBill.Id.Value}", updateRequest);
+                var response = await Http.PutAsJsonAsync($"api/v1/expenses/{dialogExpense.Id.Value}", updateRequest);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    ShowToast($"Bill '{updateRequest.Name}' updated successfully!", false);
+                    ShowToast($"Expense '{updateRequest.Description}' updated successfully!", false);
                     CloseDialog();
-                    await LoadBills();
+                    await LoadExpenses();
                 }
                 else
                 {
-                    ShowToast($"Failed to update bill: {response.ReasonPhrase}", true);
+                    ShowToast($"Failed to update expense: {response.ReasonPhrase}", true);
                 }
             }
             else
             {
-                // Create new bill
-                var recurrenceEnum = Enum.Parse<BillRecurrenceKind>(dialogBill.Recurrence!);
-                var request = new CreateBillScheduleRequest
+                // Create new expense
+                var request = new CreateExpenseRequest
                 {
-                    Name = dialogBill.Name!.Trim(),
-                    Currency = "USD", // Always USD for now
-                    Amount = dialogBill.Amount!.Value,
-                    Anchor = DateOnly.FromDateTime(dialogBill.DateTime),
-                    Recurrence = (int)recurrenceEnum
+                    Description = dialogExpense.Name!.Trim(),
+                    Currency = dialogExpense.Currency,
+                    Amount = dialogExpense.Amount!.Value,
+                    Date = DateOnly.FromDateTime(dialogExpense.DateTime),
+                    Category = string.IsNullOrWhiteSpace(dialogExpense.Category) ? null : dialogExpense.Category.Trim()
                 };
 
-                var response = await Http.PostAsJsonAsync("api/v1/billschedules", request);
+                var response = await Http.PostAsJsonAsync("api/v1/expenses", request);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    ShowToast($"Bill '{request.Name}' created successfully!", false);
+                    ShowToast($"Expense '{request.Description}' created successfully!", false);
                     CloseDialog();
-                    await LoadBills();
+                    await LoadExpenses();
                 }
                 else
                 {
-                    ShowToast($"Failed to create bill: {response.ReasonPhrase}", true);
+                    ShowToast($"Failed to create expense: {response.ReasonPhrase}", true);
                 }
             }
         }
         catch (Exception ex)
         {
-            ShowToast($"Error saving bill: {ex.Message}", true);
+            ShowToast($"Error saving expense: {ex.Message}", true);
         }
         finally
         {
-            dialogBill.IsSaving = false;
+            dialogExpense.IsSaving = false;
             StateHasChanged();
         }
     }
 
-    private async Task DeleteBill(BillScheduleItem bill)
+    private async Task DeleteExpense(ExpenseItem expense)
     {
         try
         {
-            var response = await Http.DeleteAsync($"api/v1/billschedules/{bill.Id}");
+            var response = await Http.DeleteAsync($"api/v1/expenses/{expense.Id}");
             
             if (response.IsSuccessStatusCode)
             {
-                ShowToast($"Bill '{bill.Name}' deleted successfully!", false);
-                await LoadBills();
+                ShowToast($"Expense '{expense.Description}' deleted successfully!", false);
+                await LoadExpenses();
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                ShowToast($"Failed to delete bill: {response.StatusCode}. {errorContent}", true);
+                ShowToast($"Failed to delete expense: {response.StatusCode}. {errorContent}", true);
             }
         }
         catch (Exception ex)
         {
-            ShowToast($"Error deleting bill: {ex.Message}", true);
+            ShowToast($"Error deleting expense: {ex.Message}", true);
         }
-    }
-
-    private bool ValidateDialogBill()
-    {
-        return dialogBill.Validate(requireName: true);
     }
 
     private void ShowToast(string message, bool isError)
@@ -368,56 +361,26 @@
         }
     }
 
-    private string GetRecurrenceDisplayName(BillRecurrenceKind recurrence)
-    {
-        return recurrence.ToString();
-    }
-
+    // Data Models
     private sealed record ToastMessage(int Id, string Message, bool IsError);
     
-    private sealed record BillScheduleItem(Guid Id, string Name, string Currency, decimal Amount, DateOnly Anchor, BillRecurrenceKind Recurrence, DateTime CreatedUtc, DateTime? UpdatedUtc);
-    
-    private enum BillRecurrenceKind 
-    { 
-        Weekly = 0, 
-        BiWeekly = 1, 
-        Monthly = 2, 
-        Quarterly = 3, 
-        SemiAnnual = 4, 
-        Annual = 5 
-    }
+    private sealed record ExpenseItem(Guid Id, string Description, string Currency, decimal Amount, DateOnly Date, string? Category, DateTime CreatedUtc, DateTime? UpdatedUtc);
 
-    private sealed record CreateMonthlyBillScheduleRequest
+    private sealed record CreateExpenseRequest
     {
-        public string Name { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Currency { get; set; } = "USD";
         public decimal Amount { get; set; }
-        public DateOnly Anchor { get; set; }
+        public DateOnly Date { get; set; }
+        public string? Category { get; set; }
     }
 
-    private sealed record CreateBillScheduleRequest
+    private sealed record UpdateExpenseRequest
     {
-        public string Name { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Currency { get; set; } = "USD";
         public decimal Amount { get; set; }
-        public DateOnly Anchor { get; set; }
-        public int Recurrence { get; set; }
-    }
-
-    private sealed record UpdateBillScheduleRequest
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public DateOnly Anchor { get; set; }
-        public int Recurrence { get; set; }
-    }
-
-    private sealed class PagedResult<TItem>
-    {
-        public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public long TotalCount { get; set; }
+        public DateOnly Date { get; set; }
+        public string? Category { get; set; }
     }
 }

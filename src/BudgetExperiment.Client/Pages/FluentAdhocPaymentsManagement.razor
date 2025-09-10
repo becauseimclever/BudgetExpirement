@@ -1,0 +1,385 @@
+@page "/fluent-adhoc-payments"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Adhoc Payments Management</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Width="100%" Style="padding: 24px; max-width: 1400px; margin: 0 auto;">
+    <!-- Header -->
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8" Style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
+        <FluentLabel Typo="Typography.PageTitle" Style="color: var(--neutral-foreground-primary); font-weight: 600;">
+            Adhoc Payments Management
+        </FluentLabel>
+        <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary);">
+            Manage one-time adhoc payments with modern FluentUI components
+        </FluentLabel>
+    </FluentStack>
+
+    @if (isLoading)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="padding: 48px;">
+            <FluentProgressRing />
+            <FluentLabel Typo="Typography.Body" Style="margin-left: 12px; color: var(--neutral-foreground-secondary);">
+                Loading adhoc payments...
+            </FluentLabel>
+        </FluentStack>
+    }
+    else
+    {
+        <FluentCard Style="width: 100%; overflow: hidden;">
+            <!-- Action Bar -->
+            <FluentStack Orientation="Orientation.Horizontal" 
+                         HorizontalAlignment="HorizontalAlignment.SpaceBetween" 
+                         VerticalAlignment="VerticalAlignment.Center" 
+                         Style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
+                <FluentLabel Typo="Typography.H6">
+                    Adhoc Payments (@adhocPayments.Count)
+                </FluentLabel>
+                <FluentButton Appearance="Appearance.Accent" 
+                              OnClick="OpenAddDialog"
+                              Style="margin-left: auto;">
+                    ➕ Add New Adhoc Payment
+                </FluentButton>
+            </FluentStack>
+
+            <!-- Adhoc Payments Data Grid -->
+            <FluentDataGrid Items="@adhocPayments.AsQueryable()" Style="width: 100%;" GridTemplateColumns="3fr 1fr 1fr 1fr 120px">
+                <PropertyColumn Property="@(c => c.Description)" Title="Description" Sortable="true" />
+                <TemplateColumn Title="Amount" Sortable="true">
+                    <ChildContent Context="payment">
+                        <FluentLabel Style="font-weight: 600; color: var(--palette-green-foreground-1);">
+                            @($"{payment.Currency} {payment.Amount:F2}")
+                        </FluentLabel>
+                    </ChildContent>
+                </TemplateColumn>
+                <PropertyColumn Property="@(c => c.Date)" Title="Date" Format="yyyy-MM-dd" Sortable="true" />
+                <PropertyColumn Property="@(c => c.Currency)" Title="Currency" Sortable="true" />
+                <TemplateColumn Title="Actions">
+                    <ChildContent Context="payment">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="4">
+                            <FluentButton Appearance="Appearance.Outline" 
+                                          OnClick="() => OpenEditDialog(payment)"
+                                          Title="Edit adhoc payment"
+                                          Style="padding: 4px 8px;">
+                                ✏️
+                            </FluentButton>
+                            <FluentButton Appearance="Appearance.Outline" 
+                                          OnClick="() => OpenDeleteDialog(payment)"
+                                          Title="Delete adhoc payment"
+                                          Style="padding: 4px 8px; color: var(--palette-red-foreground-1); border-color: var(--palette-red-border-1);">
+                                🗑️
+                            </FluentButton>
+                        </FluentStack>
+                    </ChildContent>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentCard>
+
+        @if (!adhocPayments.Any())
+        {
+            <FluentCard Style="margin-top: 24px; text-align: center; padding: 48px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">💰</div>
+                <FluentLabel Typo="Typography.H5" Style="margin-bottom: 8px;">
+                    No adhoc payments yet
+                </FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); margin-bottom: 24px;">
+                    Track your one-time payments and manage your finances better.
+                </FluentLabel>
+                <FluentButton Appearance="Appearance.Accent" OnClick="OpenAddDialog">
+                    Add Your First Adhoc Payment
+                </FluentButton>
+            </FluentCard>
+        }
+    }
+</FluentStack>
+
+<!-- Add/Edit Adhoc Payment Dialog -->
+<FinancialItemDialog IsVisible="@showDialog"
+                     Title="@(dialogPayment.IsEditMode ? "Edit Adhoc Payment" : "Add New Adhoc Payment")"
+                     NameLabel="Description"
+                     NamePlaceholder="Enter payment description..."
+                     DateLabel="Payment Date"
+                     SaveButtonText="@(dialogPayment.IsEditMode ? "Update Payment" : "Add Payment")"
+                     ShowCategoryField="false"
+                     ShowRecurrenceField="false"
+                     Model="@dialogPayment"
+                     OnCancel="CloseDialog"
+                     OnSave="SavePayment" />
+
+<!-- Toast Messages -->
+@if (toastMessages.Count > 0)
+{
+    <FluentStack Orientation="Orientation.Vertical" Style="position: fixed; top: 16px; right: 16px; z-index: 1200;" VerticalGap="8">
+        @foreach (var toast in toastMessages)
+        {
+            <FluentCard Style="padding: 16px; background: var(--neutral-layer-floating); border: 1px solid var(--neutral-stroke-divider); box-shadow: 0 8px 16px rgba(0,0,0,0.12); min-width: 300px;">
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalGap="12">
+                    <div style="color: @(toast.IsSuccess ? "var(--palette-green-foreground-1)" : "var(--palette-red-foreground-1)"); font-size: 20px;">
+                        @(toast.IsSuccess ? "✅" : "❌")
+                    </div>
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="4" Style="flex: 1;">
+                        <FluentLabel Typo="Typography.Body" Style="font-weight: 600;">
+                            @toast.Title
+                        </FluentLabel>
+                        <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-secondary); font-size: 12px;">
+                            @toast.Message
+                        </FluentLabel>
+                    </FluentStack>
+                    <FluentButton Appearance="Appearance.Neutral"
+                                  OnClick="() => RemoveToast(toast)"
+                                  Style="padding: 4px; min-width: auto;">
+                        ✕
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+}
+
+<!-- Delete Confirmation Dialog -->
+@if (showDeleteDialog)
+{
+    <FluentDialog Hidden="false" Modal="true" Style="--dialog-width: 400px;">
+        <FluentDialogHeader>
+            <FluentLabel Typo="Typography.H4">
+                Confirm Delete
+            </FluentLabel>
+        </FluentDialogHeader>
+        <FluentDialogBody>
+            <FluentLabel Typo="Typography.Body">
+                Are you sure you want to delete the adhoc payment "<strong>@paymentToDelete?.Description</strong>"?
+                This action cannot be undone.
+            </FluentLabel>
+        </FluentDialogBody>
+        <FluentDialogFooter>
+            <FluentButton Appearance="Appearance.Neutral" OnClick="CloseDeleteDialog">
+                Cancel
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="ConfirmDelete" Style="margin-left: 8px; background-color: var(--palette-red-background-2);">
+                Delete
+            </FluentButton>
+        </FluentDialogFooter>
+    </FluentDialog>
+}
+
+@code {
+    private List<AdhocPaymentDto> adhocPayments = new();
+    private bool isLoading = true;
+    private bool showDialog = false;
+    private bool showDeleteDialog = false;
+    private FinancialItemDialog.FinancialItemDialogModel dialogPayment = new();
+    private AdhocPaymentDto? paymentToDelete;
+    
+    private List<ToastMessage> toastMessages = new();
+
+    public class AdhocPaymentDto
+    {
+        public Guid Id { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime Date { get; set; }
+    }
+
+    public class ToastMessage
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public bool IsSuccess { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAdhocPayments();
+    }
+
+    private async Task LoadAdhocPayments()
+    {
+        try
+        {
+            isLoading = true;
+            
+            var response = await Http.GetAsync("/api/v1/adhoc-payments");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                adhocPayments = System.Text.Json.JsonSerializer.Deserialize<List<AdhocPaymentDto>>(jsonContent, new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<AdhocPaymentDto>();
+            }
+            else
+            {
+                ShowToast("Error", $"Failed to load adhoc payments: {response.StatusCode}", false);
+                adhocPayments = new List<AdhocPaymentDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Error", $"An error occurred while loading adhoc payments: {ex.Message}", false);
+            adhocPayments = new List<AdhocPaymentDto>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenAddDialog()
+    {
+        dialogPayment = new FinancialItemDialog.FinancialItemDialogModel
+        {
+            DateTime = DateTime.Today,
+            Currency = "USD"
+        };
+        showDialog = true;
+    }
+
+    private void OpenEditDialog(AdhocPaymentDto payment)
+    {
+        dialogPayment = new FinancialItemDialog.FinancialItemDialogModel
+        {
+            Id = payment.Id,
+            IsEditMode = true,
+            Name = payment.Description,
+            Currency = payment.Currency,
+            Amount = payment.Amount,
+            DateTime = payment.Date
+        };
+        showDialog = true;
+    }
+
+    private void OpenDeleteDialog(AdhocPaymentDto payment)
+    {
+        paymentToDelete = payment;
+        showDeleteDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        showDeleteDialog = false;
+        paymentToDelete = null;
+    }
+
+    private async Task SavePayment()
+    {
+        try
+        {
+            dialogPayment.IsSaving = true;
+            StateHasChanged();
+
+            if (!dialogPayment.Validate())
+            {
+                dialogPayment.IsSaving = false;
+                StateHasChanged();
+                return;
+            }
+
+            var paymentData = new
+            {
+                description = dialogPayment.Name,
+                currency = dialogPayment.Currency,
+                amount = dialogPayment.Amount,
+                date = dialogPayment.DateTime.ToString("yyyy-MM-dd")
+            };
+
+            System.Net.Http.HttpResponseMessage response;
+            if (dialogPayment.IsEditMode)
+            {
+                var updateData = new
+                {
+                    description = dialogPayment.Name,
+                    currency = dialogPayment.Currency,
+                    amount = dialogPayment.Amount,
+                    date = dialogPayment.DateTime.ToString("yyyy-MM-dd")
+                };
+                response = await Http.PutAsJsonAsync($"/api/v1/adhoc-payments/{dialogPayment.Id}", updateData);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("/api/v1/adhoc-payments", paymentData);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadAdhocPayments();
+                CloseDialog();
+                ShowToast("Success", 
+                    dialogPayment.IsEditMode ? "Adhoc payment updated successfully!" : "Adhoc payment added successfully!", 
+                    true);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast("Error", $"Failed to save adhoc payment: {errorContent}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Error", $"An error occurred: {ex.Message}", false);
+        }
+        finally
+        {
+            dialogPayment.IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            if (paymentToDelete == null) return;
+
+            var response = await Http.DeleteAsync($"/api/v1/adhoc-payments/{paymentToDelete.Id}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadAdhocPayments();
+                CloseDeleteDialog();
+                ShowToast("Success", "Adhoc payment deleted successfully!", true);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowToast("Error", $"Failed to delete adhoc payment: {errorContent}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Error", $"An error occurred: {ex.Message}", false);
+        }
+    }
+
+    private void ShowToast(string title, string message, bool isSuccess)
+    {
+        toastMessages.Add(new ToastMessage { Title = title, Message = message, IsSuccess = isSuccess });
+        StateHasChanged();
+
+        // Auto-remove after 5 seconds
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            if (toastMessages.Count > 0)
+            {
+                await InvokeAsync(() =>
+                {
+                    toastMessages.RemoveAt(0);
+                    StateHasChanged();
+                });
+            }
+        });
+    }
+
+    private void RemoveToast(ToastMessage toast)
+    {
+        toastMessages.Remove(toast);
+        StateHasChanged();
+    }
+}

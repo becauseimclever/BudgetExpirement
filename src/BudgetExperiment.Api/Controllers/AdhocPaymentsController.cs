@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 /// Controller for managing adhoc payments.
 /// </summary>
 [ApiController]
-[Route("api/v1/adhocpayments")]
+[Route("api/v1/adhoc-payments")]
 [Produces("application/json")]
 public sealed class AdhocPaymentsController : ControllerBase
 {
@@ -75,6 +75,38 @@ public sealed class AdhocPaymentsController : ControllerBase
 
         var adhocPayments = await this._service.GetByDateRangeAsync(startDate, endDate);
         return this.Ok(adhocPayments);
+    }
+
+    /// <summary>
+    /// Gets all adhoc payments with optional pagination.
+    /// </summary>
+    /// <param name="skip">Number of items to skip.</param>
+    /// <param name="take">Number of items to take.</param>
+    /// <returns>List of adhoc payments.</returns>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<AdhocPaymentResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AdhocPaymentResponse>>> GetAllAsync(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 1000)
+    {
+        var adhocPayments = await this._service.GetAllAsync(skip, take);
+        return this.Ok(adhocPayments);
+    }
+
+    /// <summary>
+    /// Updates an existing adhoc payment.
+    /// </summary>
+    /// <param name="id">The adhoc payment ID.</param>
+    /// <param name="request">The update request.</param>
+    /// <returns>The updated adhoc payment if found.</returns>
+    [HttpPut("{id}")]
+    [ProducesResponseType<AdhocPaymentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AdhocPaymentResponse>> UpdateAsync([FromRoute] Guid id, [FromBody] UpdateAdhocPaymentRequest request)
+    {
+        var response = await this._service.UpdateAsync(id, request);
+        return response == null ? this.NotFound() : this.Ok(response);
     }
 
     /// <summary>
