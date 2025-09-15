@@ -1252,10 +1252,47 @@
                 await Task.Delay(100); // Temporary to satisfy async requirement
                 ClosePayScheduleDialog();
             }
+            else
+            {
+                // Create new pay schedule
+                var anchor = DateOnly.FromDateTime(payScheduleDialogModel.DateTime);
+                var requestBody = new
+                {
+                    Anchor = anchor,
+                    Currency = payScheduleDialogModel.Currency,
+                    Amount = payScheduleDialogModel.Amount
+                };
+
+                string endpoint = payScheduleDialogModel.Recurrence.ToLowerInvariant() switch
+                {
+                    "weekly" => "api/v1/payschedules/weekly",
+                    "biweekly" => "api/v1/payschedules/biweekly",
+                    "monthly" => "api/v1/payschedules/monthly",
+                    _ => "api/v1/payschedules/monthly" // Default to monthly
+                };
+
+                var response = await Http.PostAsJsonAsync(endpoint, requestBody);
+                if (response.IsSuccessStatusCode)
+                {
+                    ClosePayScheduleDialog();
+                    await LoadPaySchedules(); // Reload the data
+                    
+                    // Clear cache to force refresh of pay schedule occurrences
+                    payOccurrenceCache.Clear();
+                    
+                    await LoadCurrentMonth(); // Refresh calendar display
+                }
+                else
+                {
+                    Console.WriteLine($"Error creating pay schedule: {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error details: {errorContent}");
+                }
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error updating pay schedule: {ex.Message}");
+            Console.WriteLine($"Error saving pay schedule: {ex.Message}");
         }
         finally
         {

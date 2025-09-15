@@ -61,7 +61,7 @@ public partial class Program
         // Custom exception handling
         app.UseMiddleware<BudgetExperiment.Api.Middleware.ExceptionHandlingMiddleware>();
 
-        // Apply pending migrations and seed data if needed.
+        // Apply pending migrations.
         using (var scope = app.Services.CreateScope())
         {
             try
@@ -70,39 +70,11 @@ public partial class Program
 
                 // Apply any pending migrations
                 await db.Database.MigrateAsync().ConfigureAwait(false);
-
-                // Seed bi-weekly pay schedule if none exist.
-                if (!db.PaySchedules.Any())
-                {
-                    var seed = BudgetExperiment.Domain.PaySchedule.CreateBiWeekly(new DateOnly(2025, 8, 29), BudgetExperiment.Domain.MoneyValue.Create("USD", 1500m));
-                    db.PaySchedules.Add(seed);
-                    await db.SaveChangesAsync().ConfigureAwait(false);
-                }
-
-                // Seed monthly bill schedule if none exist.
-                if (!db.BillSchedules.Any())
-                {
-                    var billSeed = BudgetExperiment.Domain.BillSchedule.CreateMonthly("Rent", BudgetExperiment.Domain.MoneyValue.Create("USD", 2400m), new DateOnly(2025, 9, 4));
-                    db.BillSchedules.Add(billSeed);
-                    await db.SaveChangesAsync().ConfigureAwait(false);
-                }
-
-                // Seed expense data if none exist.
-                if (!db.Expenses.Any())
-                {
-                    var expenseSeed = BudgetExperiment.Domain.Expense.Create(
-                        "Groceries at HEB",
-                        BudgetExperiment.Domain.MoneyValue.Create("USD", 150m),
-                        new DateOnly(2025, 9, 8),
-                        "Groceries");
-                    db.Expenses.Add(expenseSeed);
-                    await db.SaveChangesAsync().ConfigureAwait(false);
-                }
             }
             catch (Exception ex)
             {
                 // Log minimal info (logging pipeline configured later) and rethrow.
-                Console.Error.WriteLine($"Database ensure/create failed: {ex.Message}");
+                Console.Error.WriteLine($"Database migration failed: {ex.Message}");
                 throw;
             }
         }
