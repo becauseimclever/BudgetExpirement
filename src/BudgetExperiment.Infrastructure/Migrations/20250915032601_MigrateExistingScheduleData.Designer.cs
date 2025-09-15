@@ -3,6 +3,7 @@ using System;
 using BudgetExperiment.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BudgetExperiment.Infrastructure.Migrations
 {
     [DbContext(typeof(BudgetDbContext))]
-    partial class BudgetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915032601_MigrateExistingScheduleData")]
+    partial class MigrateExistingScheduleData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,6 +56,37 @@ namespace BudgetExperiment.Infrastructure.Migrations
                     b.ToTable("AdhocPayments");
                 });
 
+            modelBuilder.Entity("BudgetExperiment.Domain.BillSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Anchor")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DaysInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Recurrence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BillSchedules");
+                });
+
             modelBuilder.Entity("BudgetExperiment.Domain.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -82,6 +116,32 @@ namespace BudgetExperiment.Infrastructure.Migrations
                     b.HasIndex("Date");
 
                     b.ToTable("Expenses");
+                });
+
+            modelBuilder.Entity("BudgetExperiment.Domain.PaySchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Anchor")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DaysInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Recurrence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PaySchedules");
                 });
 
             modelBuilder.Entity("BudgetExperiment.Domain.RecurringSchedule", b =>
@@ -151,6 +211,35 @@ namespace BudgetExperiment.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BudgetExperiment.Domain.BillSchedule", b =>
+                {
+                    b.OwnsOne("BudgetExperiment.Domain.MoneyValue", "Amount", b1 =>
+                        {
+                            b1.Property<Guid>("BillScheduleId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("AmountValue");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("AmountCurrency");
+
+                            b1.HasKey("BillScheduleId");
+
+                            b1.ToTable("BillSchedules");
+
+                            b1.WithOwner()
+                                .HasForeignKey("BillScheduleId");
+                        });
+
+                    b.Navigation("Amount")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BudgetExperiment.Domain.Expense", b =>
                 {
                     b.OwnsOne("BudgetExperiment.Domain.MoneyValue", "Amount", b1 =>
@@ -174,6 +263,35 @@ namespace BudgetExperiment.Infrastructure.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("ExpenseId");
+                        });
+
+                    b.Navigation("Amount")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BudgetExperiment.Domain.PaySchedule", b =>
+                {
+                    b.OwnsOne("BudgetExperiment.Domain.MoneyValue", "Amount", b1 =>
+                        {
+                            b1.Property<Guid>("PayScheduleId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("PayAmountValue");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("PayAmountCurrency");
+
+                            b1.HasKey("PayScheduleId");
+
+                            b1.ToTable("PaySchedules");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PayScheduleId");
                         });
 
                     b.Navigation("Amount")

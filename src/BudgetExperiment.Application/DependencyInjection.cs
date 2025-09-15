@@ -1,9 +1,9 @@
 namespace BudgetExperiment.Application;
 
 using BudgetExperiment.Application.AdhocPayments;
-using BudgetExperiment.Application.BillSchedules;
 using BudgetExperiment.Application.Expenses;
-using BudgetExperiment.Application.PaySchedules;
+using BudgetExperiment.Application.RecurringSchedules;
+
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -16,8 +16,7 @@ public static class DependencyInjection
     /// <returns>Same collection for chaining.</returns>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IPayScheduleService, PayScheduleService>();
-        services.AddScoped<IBillScheduleService, BillScheduleService>();
+        services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
         services.AddScoped<ExpenseService>();
         services.AddScoped<AdhocPaymentService>();
         return services;

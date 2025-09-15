@@ -19,17 +19,14 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     {
     }
 
-    /// <summary>Gets bill schedules set.</summary>
-    public DbSet<BillSchedule> BillSchedules => this.Set<BillSchedule>();
-
-    /// <summary>Gets pay schedules set.</summary>
-    public DbSet<PaySchedule> PaySchedules => this.Set<PaySchedule>();
-
     /// <summary>Gets expenses set.</summary>
     public DbSet<Expense> Expenses => this.Set<Expense>();
 
     /// <summary>Gets adhoc payments set.</summary>
     public DbSet<AdhocPayment> AdhocPayments => this.Set<AdhocPayment>();
+
+    /// <summary>Gets recurring schedules set.</summary>
+    public DbSet<RecurringSchedule> RecurringSchedules => this.Set<RecurringSchedule>();
 
     /// <inheritdoc />
     public override int SaveChanges()
@@ -48,38 +45,6 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // BillSchedule mapping (value object MoneyValue owned type pattern via conversion)
-        modelBuilder.Entity<BillSchedule>(b =>
-        {
-            b.HasKey(x => x.Id);
-            b.Property(x => x.Name).IsRequired().HasMaxLength(200);
-            b.OwnsOne(typeof(MoneyValue), "Amount", mv =>
-            {
-                mv.Property("Currency").HasColumnName("AmountCurrency").HasMaxLength(3).IsRequired();
-                mv.Property("Amount").HasColumnName("AmountValue").HasColumnType("numeric(18,2)").IsRequired();
-            });
-            b.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
-            b.Property(x => x.Recurrence).IsRequired();
-            b.Property(x => x.DaysInterval);
-            b.Property(x => x.CreatedUtc).IsRequired();
-            b.Property(x => x.UpdatedUtc);
-        });
-
-        modelBuilder.Entity<PaySchedule>(p =>
-        {
-            p.HasKey(x => x.Id);
-            p.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
-            p.Property(x => x.Recurrence).IsRequired();
-            p.Property(x => x.DaysInterval);
-            p.OwnsOne(typeof(MoneyValue), "Amount", mv =>
-            {
-                mv.Property("Currency").HasColumnName("PayAmountCurrency").HasMaxLength(3).IsRequired();
-                mv.Property("Amount").HasColumnName("PayAmountValue").HasColumnType("numeric(18,2)").IsRequired();
-            });
-            p.Property(x => x.CreatedUtc).IsRequired();
-            p.Property(x => x.UpdatedUtc);
-        });
-
         modelBuilder.Entity<Expense>(e =>
         {
             e.HasKey(x => x.Id);
@@ -111,6 +76,26 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             a.Property(x => x.UpdatedUtc);
             a.HasIndex(x => x.Date); // Index for date-based queries
         });
+
+        // RecurringSchedule mapping (unified PaySchedule and BillSchedule replacement)
+        modelBuilder.Entity<RecurringSchedule>(r =>
+        {
+            r.HasKey(x => x.Id);
+            r.Property(x => x.Name).HasMaxLength(200); // Optional for income schedules
+            r.Property(x => x.Anchor).HasConversion(new DateOnlyConverter()).IsRequired();
+            r.Property(x => x.Recurrence).IsRequired();
+            r.Property(x => x.ScheduleType).IsRequired();
+            r.Property(x => x.DaysInterval);
+            r.OwnsOne(typeof(MoneyValue), "Amount", mv =>
+            {
+                mv.Property("Currency").HasColumnName("AmountCurrency").HasMaxLength(3).IsRequired();
+                mv.Property("Amount").HasColumnName("AmountValue").HasColumnType("numeric(18,2)").IsRequired();
+            });
+            r.Property(x => x.CreatedUtc).IsRequired();
+            r.Property(x => x.UpdatedUtc);
+            r.HasIndex(x => x.ScheduleType); // Index for filtering by income/expense
+            r.HasIndex(x => x.Anchor); // Index for occurrence calculations
+        });
     }
 
     private void ApplyTimestamps()
@@ -119,21 +104,17 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
         {
             if (entry.State == EntityState.Modified)
             {
-                if (entry.Entity is BillSchedule bs)
-                {
-                    bs.MarkUpdated();
-                }
-                else if (entry.Entity is PaySchedule ps)
-                {
-                    ps.MarkUpdated();
-                }
-                else if (entry.Entity is Expense expense)
+                if (entry.Entity is Expense expense)
                 {
                     expense.MarkUpdated();
                 }
                 else if (entry.Entity is AdhocPayment adhocPayment)
                 {
                     adhocPayment.MarkUpdated();
+                }
+                else if (entry.Entity is RecurringSchedule recurringSchedule)
+                {
+                    recurringSchedule.MarkUpdated();
                 }
             }
         }

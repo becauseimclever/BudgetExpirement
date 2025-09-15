@@ -22,5 +22,5 @@ public interface IRecurringScheduleReadRepository : IReadRepository<RecurringSch
     /// <param name="pageNumber">Page number (1-based).</param>
     /// <param name="pageSize">Page size.</param>
     /// <returns>Paged schedules of the specified type.</returns>
-    Task<(IEnumerable<RecurringSchedule> Items, int TotalCount)> GetSchedulesByTypeAsync(RecurringSchedule.ScheduleType scheduleType, int pageNumber, int pageSize);
+    Task<(IEnumerable<RecurringSchedule> Items, int TotalCount)> GetSchedulesByTypeAsync(ScheduleType scheduleType, int pageNumber, int pageSize);
 }

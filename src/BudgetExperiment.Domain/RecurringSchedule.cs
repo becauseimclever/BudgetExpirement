@@ -29,18 +29,6 @@ public sealed class RecurringSchedule : ISchedule
         this.CreatedUtc = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Enum to categorize the type of recurring schedule for UI and reporting purposes.
-    /// </summary>
-    public enum ScheduleType
-    {
-        /// <summary>Income schedule (typically positive amounts).</summary>
-        Income,
-
-        /// <summary>Expense schedule (typically negative amounts).</summary>
-        Expense,
-    }
-
     /// <summary>Gets the unique identifier.</summary>
     public Guid Id
     {
@@ -66,7 +54,7 @@ public sealed class RecurringSchedule : ISchedule
     }
 
     /// <summary>
-    /// Gets the schedule amount. 
+    /// Gets the schedule amount.
     /// Convention: Positive for income, negative for expenses.
     /// </summary>
     public MoneyValue Amount
