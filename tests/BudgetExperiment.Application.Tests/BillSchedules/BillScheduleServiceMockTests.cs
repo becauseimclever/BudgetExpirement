@@ -6,7 +6,7 @@ using BudgetExperiment.Domain;
 /// <summary>
 /// Tests for <see cref="BillScheduleService"/>.
 /// </summary>
-public sealed class BillScheduleServiceTests
+public sealed class BillScheduleServiceMockTests
 {
     /// <summary>Creation of monthly bill schedule persists and returns id.</summary>
     /// <returns>A task representing the asynchronous test execution.</returns>

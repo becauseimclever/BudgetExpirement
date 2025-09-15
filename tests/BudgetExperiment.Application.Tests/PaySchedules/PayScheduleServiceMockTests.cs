@@ -6,7 +6,7 @@ using BudgetExperiment.Domain;
 /// <summary>
 /// Tests for <see cref="PayScheduleService"/> application service.
 /// </summary>
-public sealed class PayScheduleServiceTests
+public sealed class PayScheduleServiceMockTests
 {
     /// <summary>Verifies weekly creation persists schedule and returns id.</summary>
     /// <returns>A task representing the asynchronous test execution.</returns>
@@ -29,7 +29,7 @@ public sealed class PayScheduleServiceTests
         Assert.True(store.Items.ContainsKey(id));
         Assert.True(uow.Saved);
         Assert.Equal(anchor, store.Items[id].Anchor);
-        Assert.Equal(PaySchedule.RecurrenceKind.Weekly, store.Items[id].Recurrence);
+        Assert.Equal(RecurrencePattern.Weekly, store.Items[id].Recurrence);
     }
 
     /// <summary>Verifies monthly creation persists schedule and returns id.</summary>
@@ -44,7 +44,7 @@ public sealed class PayScheduleServiceTests
         var id = await svc.CreateMonthlyAsync(anchor, MoneyValue.Create("USD", 1200m));
 
         Assert.True(store.Items.ContainsKey(id));
-        Assert.Equal(PaySchedule.RecurrenceKind.Monthly, store.Items[id].Recurrence);
+        Assert.Equal(RecurrencePattern.Monthly, store.Items[id].Recurrence);
     }
 
     /// <summary>Retrieving occurrences returns expected dates.</summary>
