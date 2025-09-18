@@ -18,16 +18,16 @@ public sealed class RecurringSchedulesController : ControllerBase
     /// <param name="service">Application service.</param>
     public RecurringSchedulesController(IRecurringScheduleService service) => this._service = service;
 
-    // Income schedule endpoints
+    // Income schedule endpoint
 
-    /// <summary>Create weekly income schedule.</summary>
+    /// <summary>Create income schedule with any recurrence pattern.</summary>
     /// <param name="request">Request body.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Created result.</returns>
-    [HttpPost("income/weekly")]
+    [HttpPost("income")]
     [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateWeeklyIncome([FromBody] CreateWeeklyIncomeRequest request, CancellationToken ct)
+    public async Task<IActionResult> CreateIncome([FromBody] CreateIncomeScheduleRequest request, CancellationToken ct)
     {
         if (request.Anchor == default)
         {
@@ -44,82 +44,33 @@ public sealed class RecurringSchedulesController : ControllerBase
             return this.ValidationProblem("Amount must be positive for income.");
         }
 
+        if (request.Recurrence == RecurrencePattern.Custom && (!request.CustomIntervalDays.HasValue || request.CustomIntervalDays.Value < 1))
+        {
+            return this.ValidationProblem("CustomIntervalDays is required and must be >= 1 for Custom recurrence pattern.");
+        }
+
         var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateWeeklyIncomeAsync(request.Anchor, amount, request.Name, ct).ConfigureAwait(false);
+        var id = await this._service.CreateIncomeAsync(
+            request.Anchor,
+            amount,
+            request.Recurrence,
+            request.CustomIntervalDays,
+            request.Name,
+            ct).ConfigureAwait(false);
         var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
         return this.Created($"/api/v1/recurring-schedules/{id}", dto);
     }
 
-    /// <summary>Create monthly income schedule.</summary>
+    // Expense schedule endpoint
+
+    /// <summary>Create expense schedule with any recurrence pattern.</summary>
     /// <param name="request">Request body.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Created result.</returns>
-    [HttpPost("income/monthly")]
+    [HttpPost("expenses")]
     [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateMonthlyIncome([FromBody] CreateMonthlyIncomeRequest request, CancellationToken ct)
-    {
-        if (request.Anchor == default)
-        {
-            return this.ValidationProblem("Anchor is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
-        {
-            return this.ValidationProblem("Currency must be 3 letters.");
-        }
-
-        if (request.Amount <= 0m)
-        {
-            return this.ValidationProblem("Amount must be positive for income.");
-        }
-
-        var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateMonthlyIncomeAsync(request.Anchor, amount, request.Name, ct).ConfigureAwait(false);
-        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
-        return this.Created($"/api/v1/recurring-schedules/{id}", dto);
-    }
-
-    /// <summary>Create bi-weekly income schedule.</summary>
-    /// <param name="request">Request body.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Created result.</returns>
-    [HttpPost("income/biweekly")]
-    [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateBiWeeklyIncome([FromBody] CreateBiWeeklyIncomeRequest request, CancellationToken ct)
-    {
-        if (request.Anchor == default)
-        {
-            return this.ValidationProblem("Anchor is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
-        {
-            return this.ValidationProblem("Currency must be 3 letters.");
-        }
-
-        if (request.Amount <= 0m)
-        {
-            return this.ValidationProblem("Amount must be positive for income.");
-        }
-
-        var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateBiWeeklyIncomeAsync(request.Anchor, amount, request.Name, ct).ConfigureAwait(false);
-        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
-        return this.Created($"/api/v1/recurring-schedules/{id}", dto);
-    }
-
-    // Expense schedule endpoints
-
-    /// <summary>Create weekly expense schedule.</summary>
-    /// <param name="request">Request body.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Created result.</returns>
-    [HttpPost("expenses/weekly")]
-    [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateWeeklyExpense([FromBody] CreateWeeklyExpenseRequest request, CancellationToken ct)
+    public async Task<IActionResult> CreateExpense([FromBody] CreateExpenseScheduleRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
@@ -141,78 +92,19 @@ public sealed class RecurringSchedulesController : ControllerBase
             return this.ValidationProblem("Amount must be positive (will be stored as negative for expenses).");
         }
 
-        var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateWeeklyExpenseAsync(request.Name, request.Anchor, amount, ct).ConfigureAwait(false);
-        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
-        return this.Created($"/api/v1/recurring-schedules/{id}", dto);
-    }
-
-    /// <summary>Create monthly expense schedule.</summary>
-    /// <param name="request">Request body.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Created result.</returns>
-    [HttpPost("expenses/monthly")]
-    [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateMonthlyExpense([FromBody] CreateMonthlyExpenseRequest request, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (request.Recurrence == RecurrencePattern.Custom && (!request.CustomIntervalDays.HasValue || request.CustomIntervalDays.Value < 1))
         {
-            return this.ValidationProblem("Name required for expenses.");
-        }
-
-        if (request.Anchor == default)
-        {
-            return this.ValidationProblem("Anchor is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
-        {
-            return this.ValidationProblem("Currency must be 3 letters.");
-        }
-
-        if (request.Amount <= 0m)
-        {
-            return this.ValidationProblem("Amount must be positive (will be stored as negative for expenses).");
+            return this.ValidationProblem("CustomIntervalDays is required and must be >= 1 for Custom recurrence pattern.");
         }
 
         var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateMonthlyExpenseAsync(request.Name, request.Anchor, amount, ct).ConfigureAwait(false);
-        var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
-        return this.Created($"/api/v1/recurring-schedules/{id}", dto);
-    }
-
-    /// <summary>Create bi-weekly expense schedule.</summary>
-    /// <param name="request">Request body.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Created result.</returns>
-    [HttpPost("expenses/biweekly")]
-    [ProducesResponseType(typeof(RecurringScheduleDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateBiWeeklyExpense([FromBody] CreateBiWeeklyExpenseRequest request, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return this.ValidationProblem("Name required for expenses.");
-        }
-
-        if (request.Anchor == default)
-        {
-            return this.ValidationProblem("Anchor is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Currency) || request.Currency.Length != 3)
-        {
-            return this.ValidationProblem("Currency must be 3 letters.");
-        }
-
-        if (request.Amount <= 0m)
-        {
-            return this.ValidationProblem("Amount must be positive (will be stored as negative for expenses).");
-        }
-
-        var amount = MoneyValue.Create(request.Currency, request.Amount);
-        var id = await this._service.CreateBiWeeklyExpenseAsync(request.Name, request.Anchor, amount, ct).ConfigureAwait(false);
+        var id = await this._service.CreateExpenseAsync(
+            request.Name,
+            request.Anchor,
+            amount,
+            request.Recurrence,
+            request.CustomIntervalDays,
+            ct).ConfigureAwait(false);
         var dto = await this._service.GetAsync(id, ct).ConfigureAwait(false);
         return this.Created($"/api/v1/recurring-schedules/{id}", dto);
     }

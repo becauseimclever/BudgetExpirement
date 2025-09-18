@@ -61,11 +61,10 @@
                         {
                             var isToday = day == DateOnly.FromDateTime(DateTime.Today);
                             var isCurrentMonth = day.Month == currentMonth.Month;
-                            var paySchedulesForDay = GetPaySchedulesForDay(day);
-                            var billSchedulesForDay = GetBillSchedulesForDay(day);
+                            var recurringSchedulesForDay = GetRecurringSchedulesForDay(day);
                             var expensesForDay = GetExpensesForDay(day);
                             var adhocPaymentsForDay = GetAdhocPaymentsForDay(day);
-                            var hasEvents = paySchedulesForDay.Any() || billSchedulesForDay.Any() || expensesForDay.Any() || adhocPaymentsForDay.Any();
+                            var hasEvents = recurringSchedulesForDay.Any() || expensesForDay.Any() || adhocPaymentsForDay.Any();
                             
                             <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)"
                                  @onclick="() => OpenDayDetailsDialog(day)">
@@ -75,76 +74,56 @@
                                         @day.Day
                                     </FluentLabel>
                                     
-                                    <!-- Pay schedule badges -->
+                                    <!-- Schedule badges -->
                                     <div class="day-events" style="margin-top: 8px;">
-                                        @foreach (var paySchedule in paySchedulesForDay)
+                                        @foreach (var schedule in recurringSchedulesForDay)
                                         {
-                                            <FluentCard Class="pay-schedule-card" 
-                                                        Title="@GetPayScheduleTooltip(paySchedule)"
+                                            <FluentCard Class="@GetScheduleCardClass(schedule)" 
+                                                        Title="@GetScheduleTooltip(schedule)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="@(() => OpenPayScheduleDialog(paySchedule))">
-                                                <FluentStack Orientation="Orientation.Vertical" 
-                                                             VerticalGap="1" 
-                                                             Style="align-items: flex-end;">
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="pay-name-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                        @GetPayScheduleName(paySchedule)
-                                                    </FluentLabel>
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="pay-amount-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                        +$@paySchedule.Amount.ToString("N0")
-                                                    </FluentLabel>
-                                                </FluentStack>
+                                                        @onclick:stopPropagation="true">
+                                                <div @onclick="@(() => OpenRecurringScheduleDialog(schedule))">
+                                                    <FluentStack Orientation="Orientation.Vertical" 
+                                                                 VerticalGap="1" 
+                                                                 Style="align-items: flex-end;">
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="@GetScheduleNameLabelClass(schedule)"
+                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
+                                                            @schedule.DisplayName
+                                                        </FluentLabel>
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="@GetScheduleAmountLabelClass(schedule)"
+                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
+                                                            @schedule.FormattedAmount
+                                                        </FluentLabel>
+                                                    </FluentStack>
+                                                </div>
                                             </FluentCard>
                                         }
                                         
-                                        <!-- Bill schedule badges -->
-                                        @foreach (var billSchedule in billSchedulesForDay)
-                                        {
-                                            <FluentCard Class="bill-schedule-card" 
-                                                        Title="@GetBillScheduleTooltip(billSchedule)"
-                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="@(() => OpenBillScheduleDialog(billSchedule))">
-                                                <FluentStack Orientation="Orientation.Vertical" 
-                                                             VerticalGap="1" 
-                                                             Style="align-items: flex-end;">
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="bill-name-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                        @billSchedule.Name
-                                                    </FluentLabel>
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="bill-amount-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                        -$@billSchedule.Amount.ToString("N0")
-                                                    </FluentLabel>
-                                                </FluentStack>
-                                            </FluentCard>
-                                        }
-
                                         <!-- Expense badges -->
                                         @foreach (var expense in expensesForDay)
                                         {
                                             <FluentCard Class="expense-card" 
                                                         Title="@GetExpenseTooltip(expense)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="@(() => OpenExpenseDialog(expense))">
-                                                <FluentStack Orientation="Orientation.Vertical" 
-                                                             VerticalGap="1" 
-                                                             Style="align-items: flex-end;">
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="expense-name-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                        @expense.Description
-                                                    </FluentLabel>
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="expense-amount-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                        -$@expense.Amount.ToString("N0")
-                                                    </FluentLabel>
-                                                </FluentStack>
+                                                        @onclick:stopPropagation="true">
+                                                <div @onclick="@(() => OpenExpenseDialog(expense))">
+                                                    <FluentStack Orientation="Orientation.Vertical" 
+                                                                 VerticalGap="1" 
+                                                                 Style="align-items: flex-end;">
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="expense-name-label"
+                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
+                                                            @expense.Description
+                                                        </FluentLabel>
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="expense-amount-label"
+                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
+                                                            -$@expense.Amount.ToString("N0")
+                                                        </FluentLabel>
+                                                    </FluentStack>
+                                                </div>
                                             </FluentCard>
                                         }
 
@@ -154,21 +133,23 @@
                                             <FluentCard Class="adhoc-payment-card" 
                                                         Title="@GetAdhocPaymentTooltip(adhocPayment)"
                                                         Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick="@(() => OpenAdhocPaymentDialog(adhocPayment))">
-                                                <FluentStack Orientation="Orientation.Vertical" 
-                                                             VerticalGap="1" 
-                                                             Style="align-items: flex-end;">
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="adhoc-payment-name-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                        @adhocPayment.Description
-                                                    </FluentLabel>
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Class="adhoc-payment-amount-label"
-                                                                 Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                        +$@adhocPayment.Amount.ToString("N0")
-                                                    </FluentLabel>
-                                                </FluentStack>
+                                                        @onclick:stopPropagation="true">
+                                                <div @onclick="@(() => OpenAdhocPaymentDialog(adhocPayment))">
+                                                    <FluentStack Orientation="Orientation.Vertical" 
+                                                                 VerticalGap="1" 
+                                                                 Style="align-items: flex-end;">
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="adhoc-payment-name-label"
+                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
+                                                            @adhocPayment.Description
+                                                        </FluentLabel>
+                                                        <FluentLabel Typo="Typography.Body" 
+                                                                     Class="adhoc-payment-amount-label"
+                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
+                                                            +$@adhocPayment.Amount.ToString("N0")
+                                                        </FluentLabel>
+                                                    </FluentStack>
+                                                </div>
                                             </FluentCard>
                                         }
                                     </div>
@@ -210,51 +191,29 @@
                      OnSave="SaveAdhocPaymentDialog"
                      OnDelete="DeleteAdhocPayment" />
 
-<!-- Edit Pay Schedule Dialog -->
-<ScheduleItemDialog IsVisible="@showPayScheduleDialog"
-                    Title="@(payScheduleDialogModel.IsEditMode ? "Edit Pay Schedule" : "Add New Pay Schedule")"
-                    DateLabel="Pay Date"
-                    SaveButtonText="@(payScheduleDialogModel.IsEditMode ? "Update Pay Schedule" : "Add Pay Schedule")"
-                    ShowNameField="false"
-                    ShowDaysIntervalField="true"
-                    RecurrenceOptions="@payRecurrenceOptions"
-                    Model="@payScheduleDialogModel"
-                    OnCancel="ClosePayScheduleDialog"
-                    OnSave="SavePayScheduleDialog"
-                    OnDelete="DeletePaySchedule" />
-
-<!-- Edit Bill Schedule Dialog -->
-<ScheduleItemDialog IsVisible="@showBillScheduleDialog"
-                    Title="@(billScheduleDialogModel.IsEditMode ? "Edit Bill Schedule" : "Add New Bill Schedule")"
-                    NameLabel="Bill Name"
-                    NamePlaceholder="Enter bill name..."
-                    DateLabel="Due Date"
-                    SaveButtonText="@(billScheduleDialogModel.IsEditMode ? "Update Bill" : "Add Bill")"
-                    ShowNameField="true"
-                    ShowDaysIntervalField="false"
-                    RecurrenceOptions="@billRecurrenceOptions"
-                    Model="@billScheduleDialogModel"
-                    OnCancel="CloseBillScheduleDialog"
-                    OnSave="SaveBillScheduleDialog"
-                    OnDelete="DeleteBillSchedule" />
+<!-- Edit Recurring Schedule Dialog -->
+<UnifiedScheduleDialog IsVisible="@showRecurringScheduleDialog"
+                       Title="@(recurringScheduleDialogModel.IsEditMode ? "Edit Recurring Schedule" : "Add New Recurring Schedule")"
+                       Model="@recurringScheduleDialogModel"
+                       OnCancel="CloseRecurringScheduleDialog"
+                       OnSave="SaveRecurringScheduleDialog"
+                       OnDelete="DeleteRecurringSchedule" />
 
 <!-- Day Details Dialog -->
-<DayDetailsDialog IsVisible="@showDayDetailsDialog"
-                  Title="@GetDayDetailsTitle()"
-                  SelectedDate="@selectedDayForDetails"
-                  PaySchedules="@GetPaySchedulesForDay(selectedDayForDetails)"
-                  BillSchedules="@GetBillSchedulesForDay(selectedDayForDetails)"
-                  Expenses="@GetExpensesForDay(selectedDayForDetails)"
-                  AdhocPayments="@GetAdhocPaymentsForDay(selectedDayForDetails)"
-                  OnClose="CloseDayDetailsDialog"
-                  OnAddPaySchedule="() => AddNewPayScheduleForDay(selectedDayForDetails)"
-                  OnAddBillSchedule="() => AddNewBillScheduleForDay(selectedDayForDetails)"
-                  OnAddExpense="() => AddNewExpenseForDay(selectedDayForDetails)"
-                  OnAddPayment="() => AddNewPaymentForDay(selectedDayForDetails)"
-                  OnEditPaySchedule="EventCallback.Factory.Create<PayScheduleItem>(this, HandleEditPayScheduleFromDay)"
-                  OnEditBillSchedule="EventCallback.Factory.Create<BillScheduleItem>(this, HandleEditBillScheduleFromDay)"
-                  OnEditExpense="EventCallback.Factory.Create<ExpenseItem>(this, HandleEditExpenseFromDay)"
-                  OnEditAdhocPayment="EventCallback.Factory.Create<AdhocPaymentItem>(this, HandleEditAdhocPaymentFromDay)" />
+<UnifiedDayDetailsDialog IsVisible="@showDayDetailsDialog"
+                         Title="@GetDayDetailsTitle()"
+                         SelectedDate="@selectedDayForDetails"
+                         RecurringSchedules="@GetRecurringSchedulesForDay(selectedDayForDetails)"
+                         Expenses="@GetExpensesForDay(selectedDayForDetails)"
+                         AdhocPayments="@GetAdhocPaymentsForDay(selectedDayForDetails)"
+                         OnClose="CloseDayDetailsDialog"
+                         OnAddIncomeSchedule="() => AddNewIncomeScheduleForDay(selectedDayForDetails)"
+                         OnAddExpenseSchedule="() => AddNewExpenseScheduleForDay(selectedDayForDetails)"
+                         OnAddExpense="() => AddNewExpenseForDay(selectedDayForDetails)"
+                         OnAddPayment="() => AddNewPaymentForDay(selectedDayForDetails)"
+                         OnEditRecurringSchedule="EventCallback.Factory.Create<RecurringScheduleItem>(this, HandleEditRecurringScheduleFromDay)"
+                         OnEditExpense="EventCallback.Factory.Create<ExpenseItem>(this, HandleEditExpenseFromDay)"
+                         OnEditAdhocPayment="EventCallback.Factory.Create<AdhocPaymentItem>(this, HandleEditAdhocPaymentFromDay)" />
 
 <style>
     .fluent-calendar-container {
@@ -322,7 +281,8 @@
         background-color: var(--accent-fill-hover);
     }
 
-    .calendar-cell.today .pay-schedule-card {
+    .calendar-cell.today .income-schedule-card,
+    .calendar-cell.today .expense-schedule-card {
         background-color: var(--neutral-layer-1) !important;
         color: var(--neutral-foreground-primary) !important;
         border-color: var(--neutral-stroke-control-default) !important;
@@ -355,7 +315,7 @@
         max-width: calc(100% - var(--design-unit-4));
     }
 
-    .pay-schedule-card {
+    .income-schedule-card {
         background-color: var(--palette-green-background-1) !important;
         color: var(--palette-green-foreground-1) !important;
         border-color: var(--palette-green-border-1) !important;
@@ -365,7 +325,7 @@
         flex-shrink: 1 !important;
     }
 
-    .bill-schedule-card {
+    .expense-schedule-card {
         background-color: var(--palette-red-background-1) !important;
         color: var(--palette-red-foreground-1) !important;
         border-color: var(--palette-red-border-1) !important;
@@ -395,7 +355,7 @@
         flex-shrink: 1 !important;
     }
 
-    .pay-name-label {
+    .income-schedule-name-label {
         color: var(--palette-green-foreground-2) !important;
         white-space: nowrap;
         overflow: hidden;
@@ -404,11 +364,11 @@
         display: block;
     }
 
-    .pay-amount-label {
+    .income-schedule-amount-label {
         color: var(--palette-green-foreground-1) !important;
     }
 
-    .bill-name-label {
+    .expense-schedule-name-label {
         color: var(--palette-red-foreground-2) !important;
         white-space: nowrap;
         overflow: hidden;
@@ -417,7 +377,7 @@
         display: block;
     }
 
-    .bill-amount-label {
+    .expense-schedule-amount-label {
         color: var(--palette-red-foreground-1) !important;
     }
 
@@ -465,54 +425,24 @@
             min-height: 32px;
         }
 
-        .pay-schedule-card {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-            padding: var(--design-unit-1) !important;
-        }
-
-        .bill-schedule-card {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-            padding: var(--design-unit-1) !important;
-        }
-
-        .expense-card {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-            padding: var(--design-unit-1) !important;
-        }
-
+        .income-schedule-card,
+        .expense-schedule-card,
+        .expense-card,
         .adhoc-payment-card {
             font-size: var(--type-ramp-minus-3-font-size) !important;
             padding: var(--design-unit-1) !important;
         }
 
-        .pay-name-label {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-        }
-
-        .pay-amount-label {
-            font-size: var(--type-ramp-minus-2-font-size) !important;
-        }
-
-        .bill-name-label {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-        }
-
-        .bill-amount-label {
-            font-size: var(--type-ramp-minus-2-font-size) !important;
-        }
-
-        .expense-name-label {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-        }
-
-        .expense-amount-label {
-            font-size: var(--type-ramp-minus-2-font-size) !important;
-        }
-
+        .income-schedule-name-label,
+        .expense-schedule-name-label,
+        .expense-name-label,
         .adhoc-payment-name-label {
             font-size: var(--type-ramp-minus-3-font-size) !important;
         }
 
+        .income-schedule-amount-label,
+        .expense-schedule-amount-label,
+        .expense-amount-label,
         .adhoc-payment-amount-label {
             font-size: var(--type-ramp-minus-2-font-size) !important;
         }
@@ -523,13 +453,9 @@
     private CalendarMonth currentMonth = new();
     private readonly string[] weekDayHeaders = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     
-    // Pay schedule data
-    private List<PayScheduleItem> paySchedules = new();
-    private Dictionary<string, Dictionary<DateOnly, List<PayScheduleItem>>> payOccurrenceCache = new();
-    
-    // Bill schedule data
-    private List<BillScheduleItem> billSchedules = new();
-    private Dictionary<string, Dictionary<DateOnly, List<BillScheduleItem>>> billOccurrenceCache = new();
+    // Unified recurring schedules data
+    private List<RecurringScheduleItem> recurringSchedules = new();
+    private Dictionary<string, Dictionary<DateOnly, List<RecurringScheduleItem>>> recurringScheduleOccurrenceCache = new();
     
     // Expense data
     private List<ExpenseItem> expenses = new();
@@ -548,58 +474,34 @@
     private bool showAdhocPaymentDialog = false;
     private FinancialItemDialog.FinancialItemDialogModel adhocPaymentDialogModel = new();
 
-    private bool showPayScheduleDialog = false;
-    private ScheduleItemDialog.ScheduleItemDialogModel payScheduleDialogModel = new();
-    
-    private bool showBillScheduleDialog = false;
-    private ScheduleItemDialog.ScheduleItemDialogModel billScheduleDialogModel = new();
+    private bool showRecurringScheduleDialog = false;
+    private UnifiedScheduleDialog.UnifiedScheduleDialogModel recurringScheduleDialogModel = new();
     
     // Day details dialog state
     private bool showDayDetailsDialog = false;
     private DateOnly selectedDayForDetails = DateOnly.MinValue;
-    
-    // Recurrence options
-    private readonly List<string> payRecurrenceOptions = new() { "Weekly", "BiWeekly", "Monthly", "Custom" };
-    private readonly List<string> billRecurrenceOptions = new() { "Weekly", "Monthly" };
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPaySchedules();
-        await LoadBillSchedules();
+        await LoadRecurringSchedules();
         LoadExpenses();
         LoadAdhocPayments();
         await LoadCurrentMonth();
     }
 
-    private async Task LoadPaySchedules()
+    private async Task LoadRecurringSchedules()
     {
         try
         {
-            var result = await Http.GetFromJsonAsync<PagedResult<PayScheduleItem>>("api/v1/payschedules?page=1&pageSize=100");
+            var result = await Http.GetFromJsonAsync<PagedResult<RecurringScheduleItem>>("api/v1/recurring-schedules?page=1&pageSize=100");
             if (result?.Items != null)
             {
-                paySchedules = result.Items.ToList();
+                recurringSchedules = result.Items.ToList();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading pay schedules: {ex.Message}");
-        }
-    }
-
-    private async Task LoadBillSchedules()
-    {
-        try
-        {
-            var result = await Http.GetFromJsonAsync<PagedResult<BillScheduleItem>>("api/v1/billschedules?page=1&pageSize=100");
-            if (result?.Items != null)
-            {
-                billSchedules = result.Items.ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading bill schedules: {ex.Message}");
+            Console.WriteLine($"Error loading recurring schedules: {ex.Message}");
         }
     }
 
@@ -637,9 +539,8 @@
         currentMonth = BuildCalendarMonth(now.Year, now.Month);
         currentMonthKey = $"{now.Year:D4}-{now.Month:D2}";
         
-        // Cache pay occurrences for current month
-        await CachePayOccurrences(now.Year, now.Month);
-        await CacheBillOccurrences(now.Year, now.Month);
+        // Cache occurrences for current month
+        await CacheRecurringScheduleOccurrences(now.Year, now.Month);
         await CacheExpenses(now.Year, now.Month);
         await CacheAdhocPayments(now.Year, now.Month);
         StateHasChanged();
@@ -653,18 +554,17 @@
         currentMonth = BuildCalendarMonth(newDate.Year, newDate.Month);
         currentMonthKey = $"{newDate.Year:D4}-{newDate.Month:D2}";
         
-        // Cache pay occurrences for new month
-        await CachePayOccurrences(newDate.Year, newDate.Month);
-        await CacheBillOccurrences(newDate.Year, newDate.Month);
+        // Cache occurrences for new month
+        await CacheRecurringScheduleOccurrences(newDate.Year, newDate.Month);
         await CacheExpenses(newDate.Year, newDate.Month);
         await CacheAdhocPayments(newDate.Year, newDate.Month);
         StateHasChanged();
     }
 
-    private async Task CachePayOccurrences(int year, int month)
+    private async Task CacheRecurringScheduleOccurrences(int year, int month)
     {
         var monthKey = $"{year:D4}-{month:D2}";
-        if (payOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
+        if (recurringScheduleOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
 
         // Adjust for invalid months
         var adjustedDate = new DateTime(year, month, 1);
@@ -682,81 +582,32 @@
         var startDate = DateOnly.FromDateTime(adjustedDate);
         var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
 
-        var monthOccurrences = new Dictionary<DateOnly, List<PayScheduleItem>>();
+        var monthOccurrences = new Dictionary<DateOnly, List<RecurringScheduleItem>>();
 
-        foreach (var paySchedule in paySchedules)
+        foreach (var schedule in recurringSchedules)
         {
             try
             {
-                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/payschedules/{paySchedule.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
+                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/recurring-schedules/{schedule.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
                 if (occurrences != null)
                 {
                     foreach (var occurrence in occurrences)
                     {
                         if (!monthOccurrences.ContainsKey(occurrence))
                         {
-                            monthOccurrences[occurrence] = new List<PayScheduleItem>();
+                            monthOccurrences[occurrence] = new List<RecurringScheduleItem>();
                         }
-                        monthOccurrences[occurrence].Add(paySchedule);
+                        monthOccurrences[occurrence].Add(schedule);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading occurrences for pay schedule {paySchedule.Id}: {ex.Message}");
+                Console.WriteLine($"Error loading occurrences for recurring schedule {schedule.Id}: {ex.Message}");
             }
         }
 
-        payOccurrenceCache[monthKey] = monthOccurrences;
-    }
-
-    private async Task CacheBillOccurrences(int year, int month)
-    {
-        var monthKey = $"{year:D4}-{month:D2}";
-        if (billOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
-
-        // Adjust for invalid months
-        var adjustedDate = new DateTime(year, month, 1);
-        if (month < 1)
-        {
-            adjustedDate = new DateTime(year - 1, 12, 1);
-            monthKey = $"{year - 1:D4}-12";
-        }
-        else if (month > 12)
-        {
-            adjustedDate = new DateTime(year + 1, 1, 1);
-            monthKey = $"{year + 1:D4}-01";
-        }
-
-        var startDate = DateOnly.FromDateTime(adjustedDate);
-        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
-
-        var monthOccurrences = new Dictionary<DateOnly, List<BillScheduleItem>>();
-
-        foreach (var billSchedule in billSchedules)
-        {
-            try
-            {
-                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/billschedules/{billSchedule.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
-                if (occurrences != null)
-                {
-                    foreach (var occurrence in occurrences)
-                    {
-                        if (!monthOccurrences.ContainsKey(occurrence))
-                        {
-                            monthOccurrences[occurrence] = new List<BillScheduleItem>();
-                        }
-                        monthOccurrences[occurrence].Add(billSchedule);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading occurrences for bill schedule {billSchedule.Id}: {ex.Message}");
-            }
-        }
-
-        billOccurrenceCache[monthKey] = monthOccurrences;
+        recurringScheduleOccurrenceCache[monthKey] = monthOccurrences;
     }
 
     private async Task CacheExpenses(int year, int month)
@@ -851,22 +702,13 @@
         adhocPaymentCache[monthKey] = monthAdhocPayments;
     }
 
-    private List<PayScheduleItem> GetPaySchedulesForDay(DateOnly day)
+    private List<RecurringScheduleItem> GetRecurringSchedulesForDay(DateOnly day)
     {
-        if (!payOccurrenceCache.ContainsKey(currentMonthKey))
-            return new List<PayScheduleItem>();
+        if (!recurringScheduleOccurrenceCache.ContainsKey(currentMonthKey))
+            return new List<RecurringScheduleItem>();
 
-        var monthOccurrences = payOccurrenceCache[currentMonthKey];
-        return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<PayScheduleItem>();
-    }
-
-    private List<BillScheduleItem> GetBillSchedulesForDay(DateOnly day)
-    {
-        if (!billOccurrenceCache.ContainsKey(currentMonthKey))
-            return new List<BillScheduleItem>();
-
-        var monthOccurrences = billOccurrenceCache[currentMonthKey];
-        return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<BillScheduleItem>();
+        var monthOccurrences = recurringScheduleOccurrenceCache[currentMonthKey];
+        return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<RecurringScheduleItem>();
     }
 
     private List<ExpenseItem> GetExpensesForDay(DateOnly day)
@@ -887,27 +729,25 @@
         return monthAdhocPayments.ContainsKey(day) ? monthAdhocPayments[day] : new List<AdhocPaymentItem>();
     }
 
-    private string GetPayScheduleName(PayScheduleItem paySchedule)
+    private string GetScheduleCardClass(RecurringScheduleItem schedule)
     {
-        // Create a meaningful name from the pay schedule data
-        return $"{paySchedule.Recurrence} {paySchedule.Anchor:MMM d}";
+        return schedule.IsIncome ? "income-schedule-card" : "expense-schedule-card";
     }
 
-    private string GetPayScheduleTooltip(PayScheduleItem paySchedule)
+    private string GetScheduleNameLabelClass(RecurringScheduleItem schedule)
     {
-        return $"{paySchedule.Recurrence} pay of {paySchedule.Currency} ${paySchedule.Amount:N2} (Anchor: {paySchedule.Anchor:yyyy-MM-dd})";
+        return schedule.IsIncome ? "income-schedule-name-label" : "expense-schedule-name-label";
     }
 
-    private string GetBillScheduleTooltip(BillScheduleItem billSchedule)
+    private string GetScheduleAmountLabelClass(RecurringScheduleItem schedule)
     {
-        var recurrenceText = billSchedule.Recurrence switch
-        {
-            0 => "Monthly",
-            1 => "Weekly", 
-            2 => "BiWeekly",
-            _ => "Custom"
-        };
-        return $"{recurrenceText} bill: {billSchedule.Name} - {billSchedule.Currency} ${billSchedule.Amount:N2} (Anchor: {billSchedule.Anchor:yyyy-MM-dd})";
+        return schedule.IsIncome ? "income-schedule-amount-label" : "expense-schedule-amount-label";
+    }
+
+    private string GetScheduleTooltip(RecurringScheduleItem schedule)
+    {
+        var typeText = schedule.IsIncome ? "Income" : "Expense";
+        return $"{schedule.Recurrence} {typeText}: {schedule.DisplayName} - {schedule.Currency} ${schedule.DisplayAmount:N2} (Anchor: {schedule.Anchor:yyyy-MM-dd})";
     }
 
     private string GetExpenseTooltip(ExpenseItem expense)
@@ -948,33 +788,20 @@
 
     // Dialog methods for editing calendar items
     
-    private void OpenPayScheduleDialog(PayScheduleItem paySchedule)
+    private void OpenRecurringScheduleDialog(RecurringScheduleItem schedule)
     {
-        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel
         {
-            Id = paySchedule.Id,
-            Amount = paySchedule.Amount,
-            DateTime = paySchedule.Anchor.ToDateTime(TimeOnly.MinValue),
-            Recurrence = GetRecurrenceDisplayName(paySchedule.Recurrence),
-            DaysInterval = paySchedule.DaysInterval,
+            Id = schedule.Id,
+            ScheduleType = schedule.ScheduleType,
+            Name = schedule.Name ?? string.Empty,
+            Amount = schedule.DisplayAmount, // Always use positive for display/editing
+            DateTime = schedule.Anchor.ToDateTime(TimeOnly.MinValue),
+            Recurrence = schedule.Recurrence,
+            DaysInterval = schedule.DaysInterval,
             IsEditMode = true
         };
-        showPayScheduleDialog = true;
-        StateHasChanged();
-    }
-    
-    private void OpenBillScheduleDialog(BillScheduleItem billSchedule)
-    {
-        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
-        {
-            Id = billSchedule.Id,
-            Name = billSchedule.Name,
-            Amount = billSchedule.Amount,
-            DateTime = billSchedule.Anchor.ToDateTime(TimeOnly.MinValue),
-            Recurrence = GetBillRecurrenceDisplayName(billSchedule.Recurrence),
-            IsEditMode = true
-        };
-        showBillScheduleDialog = true;
+        showRecurringScheduleDialog = true;
         StateHasChanged();
     }
 
@@ -1198,205 +1025,153 @@
         }
     }
 
-    // Helper methods for recurrence display
-    private string GetRecurrenceDisplayName(RecurrenceKind recurrence)
+    // Dialog close and save methods for recurring schedules
+    private void CloseRecurringScheduleDialog()
     {
-        return recurrence.ToString();
-    }
-
-    private string GetBillRecurrenceDisplayName(int recurrence)
-    {
-        return recurrence switch
-        {
-            0 => "Weekly",
-            1 => "BiWeekly", 
-            2 => "Monthly",
-            3 => "Quarterly",
-            _ => "Monthly"
-        };
-    }
-
-    // Dialog close methods
-    private void ClosePayScheduleDialog()
-    {
-        showPayScheduleDialog = false;
-        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel();
+        showRecurringScheduleDialog = false;
+        recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel();
         StateHasChanged();
     }
 
-    private void CloseBillScheduleDialog()
+    private async Task SaveRecurringScheduleDialog()
     {
-        showBillScheduleDialog = false;
-        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel();
-        StateHasChanged();
-    }
-
-    // Dialog save methods
-    private async Task SavePayScheduleDialog()
-    {
-        if (!payScheduleDialogModel.Validate(requireName: false))
+        if (!recurringScheduleDialogModel.Validate())
         {
             StateHasChanged();
             return;
         }
 
-        payScheduleDialogModel.IsSaving = true;
+        recurringScheduleDialogModel.IsSaving = true;
         StateHasChanged();
 
         try
         {
-            if (payScheduleDialogModel.IsEditMode && payScheduleDialogModel.Id.HasValue)
+            if (recurringScheduleDialogModel.IsEditMode && recurringScheduleDialogModel.Id.HasValue)
             {
-                // TODO: Implement pay schedule update when API is available
-                Console.WriteLine($"Would update pay schedule: {payScheduleDialogModel.Id.Value}");
-                await Task.Delay(100); // Temporary to satisfy async requirement
-                ClosePayScheduleDialog();
-            }
-            else
-            {
-                // Create new pay schedule
-                var anchor = DateOnly.FromDateTime(payScheduleDialogModel.DateTime);
-                var requestBody = new
-                {
-                    Anchor = anchor,
-                    Currency = payScheduleDialogModel.Currency,
-                    Amount = payScheduleDialogModel.Amount
-                };
+                // Update existing schedule
+                var updateRequest = new UpdateRecurringScheduleRequest(
+                    Name: string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim(),
+                    Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                    Currency: recurringScheduleDialogModel.Currency,
+                    Amount: recurringScheduleDialogModel.Amount!.Value,
+                    Recurrence: recurringScheduleDialogModel.Recurrence,
+                    CustomIntervalDays: recurringScheduleDialogModel.DaysInterval
+                );
 
-                string endpoint = payScheduleDialogModel.Recurrence.ToLowerInvariant() switch
-                {
-                    "weekly" => "api/v1/payschedules/weekly",
-                    "biweekly" => "api/v1/payschedules/biweekly",
-                    "monthly" => "api/v1/payschedules/monthly",
-                    _ => "api/v1/payschedules/monthly" // Default to monthly
-                };
-
-                var response = await Http.PostAsJsonAsync(endpoint, requestBody);
+                var response = await Http.PutAsJsonAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}", updateRequest);
+                
                 if (response.IsSuccessStatusCode)
                 {
-                    ClosePayScheduleDialog();
-                    await LoadPaySchedules(); // Reload the data
-                    
-                    // Clear cache to force refresh of pay schedule occurrences
-                    payOccurrenceCache.Clear();
-                    
-                    await LoadCurrentMonth(); // Refresh calendar display
+                    // Clear cache and reload current month
+                    recurringScheduleOccurrenceCache.Clear();
+                    await LoadRecurringSchedules();
+                    await CacheRecurringScheduleOccurrences(currentMonth.Year, currentMonth.Month);
+                    CloseRecurringScheduleDialog();
                 }
                 else
                 {
-                    Console.WriteLine($"Error creating pay schedule: {response.StatusCode}");
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Error details: {errorContent}");
+                    Console.WriteLine($"Failed to update recurring schedule: {response.StatusCode}");
+                }
+            }
+            else
+            {
+                // Create new schedule
+                if (recurringScheduleDialogModel.ScheduleType == ScheduleType.Income)
+                {
+                    var createRequest = new CreateIncomeScheduleRequest(
+                        Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                        Currency: recurringScheduleDialogModel.Currency,
+                        Amount: recurringScheduleDialogModel.Amount!.Value,
+                        Recurrence: recurringScheduleDialogModel.Recurrence,
+                        CustomIntervalDays: recurringScheduleDialogModel.DaysInterval,
+                        Name: string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim()
+                    );
+
+                    var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/income", createRequest);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        await RefreshSchedulesAndCloseDialog();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error creating income schedule: {response.StatusCode}");
+                    }
+                }
+                else
+                {
+                    var createRequest = new CreateExpenseScheduleRequest(
+                        Name: recurringScheduleDialogModel.Name!.Trim(),
+                        Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                        Currency: recurringScheduleDialogModel.Currency,
+                        Amount: recurringScheduleDialogModel.Amount!.Value,
+                        Recurrence: recurringScheduleDialogModel.Recurrence,
+                        CustomIntervalDays: recurringScheduleDialogModel.DaysInterval
+                    );
+
+                    var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/expenses", createRequest);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        await RefreshSchedulesAndCloseDialog();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error creating expense schedule: {response.StatusCode}");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving pay schedule: {ex.Message}");
+            Console.WriteLine($"Error saving recurring schedule: {ex.Message}");
         }
         finally
         {
-            payScheduleDialogModel.IsSaving = false;
+            recurringScheduleDialogModel.IsSaving = false;
             StateHasChanged();
         }
     }
 
-    private async Task SaveBillScheduleDialog()
+    private async Task DeleteRecurringSchedule()
     {
-        if (!billScheduleDialogModel.Validate(requireName: true))
-        {
-            StateHasChanged();
-            return;
-        }
-
-        billScheduleDialogModel.IsSaving = true;
-        StateHasChanged();
-
-        try
-        {
-            if (billScheduleDialogModel.IsEditMode && billScheduleDialogModel.Id.HasValue)
-            {
-                // TODO: Implement bill schedule update when API is available
-                Console.WriteLine($"Would update bill schedule: {billScheduleDialogModel.Id.Value}");
-                await Task.Delay(100); // Temporary to satisfy async requirement
-                CloseBillScheduleDialog();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating bill schedule: {ex.Message}");
-        }
-        finally
-        {
-            billScheduleDialogModel.IsSaving = false;
-            StateHasChanged();
-        }
-    }
-
-    // Dialog delete methods
-    private async Task DeletePaySchedule()
-    {
-        if (!payScheduleDialogModel.IsEditMode || !payScheduleDialogModel.Id.HasValue)
+        if (!recurringScheduleDialogModel.IsEditMode || !recurringScheduleDialogModel.Id.HasValue)
         {
             return;
         }
 
-        payScheduleDialogModel.IsDeleting = true;
+        recurringScheduleDialogModel.IsDeleting = true;
         StateHasChanged();
 
         try
         {
-            // TODO: Implement pay schedule delete when API is available
-            Console.WriteLine($"Would delete pay schedule: {payScheduleDialogModel.Id.Value}");
-            await Task.Delay(100); // Temporary to satisfy async requirement
-            ClosePayScheduleDialog();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting pay schedule: {ex.Message}");
-        }
-        finally
-        {
-            payScheduleDialogModel.IsDeleting = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task DeleteBillSchedule()
-    {
-        if (!billScheduleDialogModel.IsEditMode || !billScheduleDialogModel.Id.HasValue)
-        {
-            return;
-        }
-
-        billScheduleDialogModel.IsDeleting = true;
-        StateHasChanged();
-
-        try
-        {
-            var response = await Http.DeleteAsync($"api/v1/billschedules/{billScheduleDialogModel.Id.Value}");
+            var response = await Http.DeleteAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}");
             
             if (response.IsSuccessStatusCode)
             {
-                // Clear cache and reload current month
-                billOccurrenceCache.Clear();
-                await CacheBillOccurrences(currentMonth.Year, currentMonth.Month);
-                CloseBillScheduleDialog();
+                await RefreshSchedulesAndCloseDialog();
             }
             else
             {
-                Console.WriteLine($"Failed to delete bill schedule: {response.StatusCode}");
+                Console.WriteLine($"Failed to delete recurring schedule: {response.StatusCode}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting bill schedule: {ex.Message}");
+            Console.WriteLine($"Error deleting recurring schedule: {ex.Message}");
         }
         finally
         {
-            billScheduleDialogModel.IsDeleting = false;
+            recurringScheduleDialogModel.IsDeleting = false;
             StateHasChanged();
         }
+    }
+
+    private async Task RefreshSchedulesAndCloseDialog()
+    {
+        // Clear cache and reload data
+        recurringScheduleOccurrenceCache.Clear();
+        await LoadRecurringSchedules();
+        await CacheRecurringScheduleOccurrences(currentMonth.Year, currentMonth.Month);
+        CloseRecurringScheduleDialog();
     }
 
     // Day details dialog methods
@@ -1425,29 +1200,31 @@
     }
 
     // Methods to add new items for a specific day
-    private void AddNewPayScheduleForDay(DateOnly date)
+    private void AddNewIncomeScheduleForDay(DateOnly date)
     {
-        payScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel
         {
+            ScheduleType = ScheduleType.Income,
             DateTime = date.ToDateTime(TimeOnly.MinValue),
-            Recurrence = "Monthly",
+            Recurrence = RecurrencePattern.Monthly,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
-        showPayScheduleDialog = true;
+        showRecurringScheduleDialog = true;
         StateHasChanged();
     }
 
-    private void AddNewBillScheduleForDay(DateOnly date)
+    private void AddNewExpenseScheduleForDay(DateOnly date)
     {
-        billScheduleDialogModel = new ScheduleItemDialog.ScheduleItemDialogModel
+        recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel
         {
+            ScheduleType = ScheduleType.Expense,
             DateTime = date.ToDateTime(TimeOnly.MinValue),
-            Recurrence = "Monthly",
+            Recurrence = RecurrencePattern.Monthly,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
-        showBillScheduleDialog = true;
+        showRecurringScheduleDialog = true;
         StateHasChanged();
     }
 
@@ -1476,16 +1253,10 @@
     }
 
     // Handler methods for day details dialog edit callbacks
-    private void HandleEditPayScheduleFromDay(PayScheduleItem paySchedule)
+    private void HandleEditRecurringScheduleFromDay(RecurringScheduleItem schedule)
     {
         CloseDayDetailsDialog();
-        OpenPayScheduleDialog(paySchedule);
-    }
-    
-    private void HandleEditBillScheduleFromDay(BillScheduleItem billSchedule)
-    {
-        CloseDayDetailsDialog();
-        OpenBillScheduleDialog(billSchedule);
+        OpenRecurringScheduleDialog(schedule);
     }
     
     private void HandleEditExpenseFromDay(ExpenseItem expense)
@@ -1571,5 +1342,4 @@
         public string MonthName { get; set; } = string.Empty;
         public List<List<DateOnly>> Weeks { get; set; } = new();
     }
-}
 }
