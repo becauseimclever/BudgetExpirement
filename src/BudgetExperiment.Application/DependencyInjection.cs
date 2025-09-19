@@ -1,6 +1,7 @@
 namespace BudgetExperiment.Application;
 
 using BudgetExperiment.Application.AdhocPayments;
+using BudgetExperiment.Application.AdhocTransactions;
 using BudgetExperiment.Application.Expenses;
 using BudgetExperiment.Application.RecurringSchedules;
 
@@ -19,6 +20,10 @@ public static class DependencyInjection
         services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
         services.AddScoped<ExpenseService>();
         services.AddScoped<AdhocPaymentService>();
+
+        // Add new unified service
+        services.AddScoped<IAdhocTransactionService, AdhocTransactionService>();
+
         return services;
     }
 }

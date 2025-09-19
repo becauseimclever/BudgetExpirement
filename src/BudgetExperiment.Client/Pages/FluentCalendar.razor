@@ -6,6 +6,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using BudgetExperiment.Client.Components
 @using BudgetExperiment.Client.Api
+@using BudgetExperiment.Domain
 
 <PageTitle>Budget Calendar</PageTitle>
 
@@ -62,9 +63,8 @@
                             var isToday = day == DateOnly.FromDateTime(DateTime.Today);
                             var isCurrentMonth = day.Month == currentMonth.Month;
                             var recurringSchedulesForDay = GetRecurringSchedulesForDay(day);
-                            var expensesForDay = GetExpensesForDay(day);
-                            var adhocPaymentsForDay = GetAdhocPaymentsForDay(day);
-                            var hasEvents = recurringSchedulesForDay.Any() || expensesForDay.Any() || adhocPaymentsForDay.Any();
+                            var adhocTransactionsForDay = GetAdhocTransactionsForDay(day);
+                            var hasEvents = recurringSchedulesForDay.Any() || adhocTransactionsForDay.Any();
                             
                             <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)"
                                  @onclick="() => OpenDayDetailsDialog(day)">
@@ -76,79 +76,63 @@
                                     
                                     <!-- Schedule badges -->
                                     <div class="day-events" style="margin-top: 8px;">
-                                        @foreach (var schedule in recurringSchedulesForDay)
-                                        {
-                                            <FluentCard Class="@GetScheduleCardClass(schedule)" 
-                                                        Title="@GetScheduleTooltip(schedule)"
-                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick:stopPropagation="true">
-                                                <div @onclick="@(() => OpenRecurringScheduleDialog(schedule))">
-                                                    <FluentStack Orientation="Orientation.Vertical" 
-                                                                 VerticalGap="1" 
-                                                                 Style="align-items: flex-end;">
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="@GetScheduleNameLabelClass(schedule)"
-                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                            @schedule.DisplayName
-                                                        </FluentLabel>
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="@GetScheduleAmountLabelClass(schedule)"
-                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                            @schedule.FormattedAmount
-                                                        </FluentLabel>
-                                                    </FluentStack>
-                                                </div>
-                                            </FluentCard>
+                                        @{
+                                            var allItems = new List<object>();
+                                            allItems.AddRange(recurringSchedulesForDay.Cast<object>());
+                                            allItems.AddRange(adhocTransactionsForDay.Cast<object>());
+                                            
+                                            const int maxVisibleItems = 3;
+                                            var visibleItems = allItems.Take(maxVisibleItems).ToList();
+                                            var hiddenCount = Math.Max(0, allItems.Count - maxVisibleItems);
                                         }
                                         
-                                        <!-- Expense badges -->
-                                        @foreach (var expense in expensesForDay)
+                                        <!-- Visible Schedule Items -->
+                                        @foreach (var item in visibleItems)
                                         {
-                                            <FluentCard Class="expense-card" 
-                                                        Title="@GetExpenseTooltip(expense)"
-                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                        @onclick:stopPropagation="true">
-                                                <div @onclick="@(() => OpenExpenseDialog(expense))">
-                                                    <FluentStack Orientation="Orientation.Vertical" 
-                                                                 VerticalGap="1" 
-                                                                 Style="align-items: flex-end;">
+                                            @if (item is RecurringScheduleItem schedule)
+                                            {
+                                                <FluentCard Class="@GetScheduleCardClass(schedule)" 
+                                                            Title="@GetScheduleTooltip(schedule)"
+                                                            Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
+                                                            @onclick:stopPropagation="true">
+                                                    <div @onclick="@(() => OpenRecurringScheduleDialog(schedule))">
                                                         <FluentLabel Typo="Typography.Body" 
-                                                                     Class="expense-name-label"
-                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                            @expense.Description
+                                                                     Class="@GetScheduleAmountLabelClass(schedule)"
+                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600; text-align: center; width: 100%;">
+                                                            @schedule.FormattedAmount
                                                         </FluentLabel>
+                                                    </div>
+                                                </FluentCard>
+                                            }
+                                            else if (item is AdhocTransactionItem transaction)
+                                            {
+                                                <FluentCard Class="@GetTransactionCardClass(transaction)" 
+                                                            Title="@GetTransactionTooltip(transaction)"
+                                                            Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
+                                                            @onclick:stopPropagation="true">
+                                                    <div @onclick="@(() => OpenAdhocTransactionDialog(transaction))">
                                                         <FluentLabel Typo="Typography.Body" 
-                                                                     Class="expense-amount-label"
-                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                            -$@expense.Amount.ToString("N0")
+                                                                     Class="@GetTransactionAmountLabelClass(transaction)"
+                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600; text-align: center; width: 100%;">
+                                                            @transaction.FormattedAmount
                                                         </FluentLabel>
-                                                    </FluentStack>
-                                                </div>
-                                            </FluentCard>
+                                                    </div>
+                                                </FluentCard>
+                                            }
                                         }
-
-                                        <!-- Adhoc payment badges -->
-                                        @foreach (var adhocPayment in adhocPaymentsForDay)
+                                        
+                                        <!-- More Items Indicator -->
+                                        @if (hiddenCount > 0)
                                         {
-                                            <FluentCard Class="adhoc-payment-card" 
-                                                        Title="@GetAdhocPaymentTooltip(adhocPayment)"
-                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
+                                            <FluentCard Class="more-items-indicator" 
+                                                        Title="@($"Click to see all {allItems.Count} items for this day")"
+                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer; background-color: var(--neutral-layer-3) !important; border: 1px dashed var(--neutral-stroke-control-default) !important;"
                                                         @onclick:stopPropagation="true">
-                                                <div @onclick="@(() => OpenAdhocPaymentDialog(adhocPayment))">
-                                                    <FluentStack Orientation="Orientation.Vertical" 
-                                                                 VerticalGap="1" 
-                                                                 Style="align-items: flex-end;">
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="adhoc-payment-name-label"
-                                                                     Style="line-height: 1; margin: 0; font-size: 9px;">
-                                                            @adhocPayment.Description
-                                                        </FluentLabel>
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="adhoc-payment-amount-label"
-                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600;">
-                                                            +$@adhocPayment.Amount.ToString("N0")
-                                                        </FluentLabel>
-                                                    </FluentStack>
+                                                <div @onclick="@(() => OpenDayDetailsDialog(day))">
+                                                    <FluentLabel Typo="Typography.Body" 
+                                                                 Style="line-height: 1; margin: 0; font-size: 9px; color: var(--neutral-foreground-secondary); text-align: center; width: 100%;">
+                                                        +@hiddenCount more...
+                                                    </FluentLabel>
                                                 </div>
                                             </FluentCard>
                                         }
@@ -163,33 +147,20 @@
     </FluentCard>
 </FluentStack>
 
-<!-- Edit Expense Dialog -->
-<FinancialItemDialog IsVisible="@showExpenseDialog"
-                     Title="@(expenseDialogModel.IsEditMode ? "Edit Expense" : "Add New Expense")"
+<!-- Edit Adhoc Transaction Dialog -->
+<FinancialItemDialog IsVisible="@showAdhocTransactionDialog"
+                     Title="@(adhocTransactionDialogModel.IsEditMode ? "Edit Transaction" : "Add New Transaction")"
                      NameLabel="Description"
-                     NamePlaceholder="Enter expense description..."
-                     DateLabel="Expense Date"
-                     SaveButtonText="@(expenseDialogModel.IsEditMode ? "Update Expense" : "Add Expense")"
+                     NamePlaceholder="Enter transaction description..."
+                     DateLabel="Transaction Date"
+                     SaveButtonText="@(adhocTransactionDialogModel.IsEditMode ? "Update Transaction" : "Add Transaction")"
                      ShowCategoryField="true"
                      ShowRecurrenceField="false"
-                     Model="@expenseDialogModel"
-                     OnCancel="CloseExpenseDialog"
-                     OnSave="SaveExpenseDialog"
-                     OnDelete="DeleteExpense" />
-
-<!-- Edit Adhoc Payment Dialog -->
-<FinancialItemDialog IsVisible="@showAdhocPaymentDialog"
-                     Title="@(adhocPaymentDialogModel.IsEditMode ? "Edit Payment" : "Add New Payment")"
-                     NameLabel="Description"
-                     NamePlaceholder="Enter payment description..."
-                     DateLabel="Payment Date"
-                     SaveButtonText="@(adhocPaymentDialogModel.IsEditMode ? "Update Payment" : "Add Payment")"
-                     ShowCategoryField="true"
-                     ShowRecurrenceField="false"
-                     Model="@adhocPaymentDialogModel"
-                     OnCancel="CloseAdhocPaymentDialog"
-                     OnSave="SaveAdhocPaymentDialog"
-                     OnDelete="DeleteAdhocPayment" />
+                     ShowTransactionTypeField="true"
+                     Model="@adhocTransactionDialogModel"
+                     OnCancel="CloseAdhocTransactionDialog"
+                     OnSave="SaveAdhocTransactionDialog"
+                     OnDelete="DeleteAdhocTransaction" />
 
 <!-- Edit Recurring Schedule Dialog -->
 <UnifiedScheduleDialog IsVisible="@showRecurringScheduleDialog"
@@ -204,16 +175,14 @@
                          Title="@GetDayDetailsTitle()"
                          SelectedDate="@selectedDayForDetails"
                          RecurringSchedules="@GetRecurringSchedulesForDay(selectedDayForDetails)"
-                         Expenses="@GetExpensesForDay(selectedDayForDetails)"
-                         AdhocPayments="@GetAdhocPaymentsForDay(selectedDayForDetails)"
+                         AdhocTransactions="@GetAdhocTransactionsForDay(selectedDayForDetails)"
                          OnClose="CloseDayDetailsDialog"
                          OnAddIncomeSchedule="() => AddNewIncomeScheduleForDay(selectedDayForDetails)"
                          OnAddExpenseSchedule="() => AddNewExpenseScheduleForDay(selectedDayForDetails)"
-                         OnAddExpense="() => AddNewExpenseForDay(selectedDayForDetails)"
-                         OnAddPayment="() => AddNewPaymentForDay(selectedDayForDetails)"
+                         OnAddIncomeTransaction="() => AddNewIncomeTransactionForDay(selectedDayForDetails)"
+                         OnAddExpenseTransaction="() => AddNewExpenseTransactionForDay(selectedDayForDetails)"
                          OnEditRecurringSchedule="EventCallback.Factory.Create<RecurringScheduleItem>(this, HandleEditRecurringScheduleFromDay)"
-                         OnEditExpense="EventCallback.Factory.Create<ExpenseItem>(this, HandleEditExpenseFromDay)"
-                         OnEditAdhocPayment="EventCallback.Factory.Create<AdhocPaymentItem>(this, HandleEditAdhocPaymentFromDay)" />
+                         OnEditAdhocTransaction="EventCallback.Factory.Create<AdhocTransactionItem>(this, HandleEditAdhocTransactionFromDay)" />
 
 <style>
     .fluent-calendar-container {
@@ -282,7 +251,9 @@
     }
 
     .calendar-cell.today .income-schedule-card,
-    .calendar-cell.today .expense-schedule-card {
+    .calendar-cell.today .expense-schedule-card,
+    .calendar-cell.today .income-transaction-card,
+    .calendar-cell.today .expense-transaction-card {
         background-color: var(--neutral-layer-1) !important;
         color: var(--neutral-foreground-primary) !important;
         border-color: var(--neutral-stroke-control-default) !important;
@@ -313,9 +284,29 @@
         bottom: var(--design-unit-1);
         right: var(--design-unit-1);
         max-width: calc(100% - var(--design-unit-4));
+        max-height: calc(100% - 40px); /* Reserve space for day number */
+        overflow: hidden;
     }
 
-    .income-schedule-card {
+    .more-items-indicator {
+        background-color: var(--neutral-layer-3) !important;
+        color: var(--neutral-foreground-secondary) !important;
+        border: 1px dashed var(--neutral-stroke-control-default) !important;
+        box-shadow: none !important;
+        font-size: var(--type-ramp-minus-2-font-size) !important;
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+    }
+    
+    .more-items-indicator:hover {
+        opacity: 1;
+        background-color: var(--neutral-layer-4) !important;
+    }
+    
+    .income-schedule-card,
+    .income-transaction-card {
         background-color: var(--palette-green-background-1) !important;
         color: var(--palette-green-foreground-1) !important;
         border-color: var(--palette-green-border-1) !important;
@@ -323,9 +314,14 @@
         font-size: var(--type-ramp-minus-2-font-size) !important;
         min-width: 0 !important;
         flex-shrink: 1 !important;
+        min-height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .expense-schedule-card {
+    .expense-schedule-card,
+    .expense-transaction-card {
         background-color: var(--palette-red-background-1) !important;
         color: var(--palette-red-foreground-1) !important;
         border-color: var(--palette-red-border-1) !important;
@@ -333,80 +329,24 @@
         font-size: var(--type-ramp-minus-2-font-size) !important;
         min-width: 0 !important;
         flex-shrink: 1 !important;
+        min-height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .expense-card {
-        background-color: var(--palette-orange-background-1) !important;
-        color: var(--palette-orange-foreground-1) !important;
-        border-color: var(--palette-orange-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
-        font-size: var(--type-ramp-minus-2-font-size) !important;
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-    }
-
-    .adhoc-payment-card {
-        background-color: var(--palette-blue-background-1) !important;
-        color: var(--palette-blue-foreground-1) !important;
-        border-color: var(--palette-blue-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
-        font-size: var(--type-ramp-minus-2-font-size) !important;
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-    }
-
-    .income-schedule-name-label {
-        color: var(--palette-green-foreground-2) !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        display: block;
-    }
-
-    .income-schedule-amount-label {
+    .income-schedule-amount-label,
+    .income-transaction-amount-label {
         color: var(--palette-green-foreground-1) !important;
+        font-weight: 700 !important;
     }
 
-    .expense-schedule-name-label {
-        color: var(--palette-red-foreground-2) !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        display: block;
-    }
-
-    .expense-schedule-amount-label {
+    .expense-schedule-amount-label,
+    .expense-transaction-amount-label {
         color: var(--palette-red-foreground-1) !important;
+        font-weight: 700 !important;
     }
 
-    .expense-name-label {
-        color: var(--palette-orange-foreground-2) !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        display: block;
-    }
-
-    .expense-amount-label {
-        color: var(--palette-orange-foreground-1) !important;
-    }
-
-    .adhoc-payment-name-label {
-        color: var(--palette-blue-foreground-2) !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        display: block;
-    }
-
-    .adhoc-payment-amount-label {
-        color: var(--palette-blue-foreground-1) !important;
-    }
-    
     @@media (max-width: 768px) {
         .fluent-calendar-container {
             padding: var(--design-unit-2);
@@ -425,26 +365,26 @@
             min-height: 32px;
         }
 
-        .income-schedule-card,
-        .expense-schedule-card,
-        .expense-card,
-        .adhoc-payment-card {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-            padding: var(--design-unit-1) !important;
+        .day-events {
+            max-height: calc(100% - 25px); /* Less space for day number on mobile */
         }
 
-        .income-schedule-name-label,
-        .expense-schedule-name-label,
-        .expense-name-label,
-        .adhoc-payment-name-label {
+        .income-schedule-card,
+        .expense-schedule-card,
+        .income-transaction-card,
+        .expense-transaction-card,
+        .more-items-indicator {
             font-size: var(--type-ramp-minus-3-font-size) !important;
+            padding: var(--design-unit-1) !important;
+            min-height: 18px;
         }
 
         .income-schedule-amount-label,
         .expense-schedule-amount-label,
-        .expense-amount-label,
-        .adhoc-payment-amount-label {
+        .income-transaction-amount-label,
+        .expense-transaction-amount-label {
             font-size: var(--type-ramp-minus-2-font-size) !important;
+            font-weight: 700 !important;
         }
     }
 </style>
@@ -457,22 +397,15 @@
     private List<RecurringScheduleItem> recurringSchedules = new();
     private Dictionary<string, Dictionary<DateOnly, List<RecurringScheduleItem>>> recurringScheduleOccurrenceCache = new();
     
-    // Expense data
-    private List<ExpenseItem> expenses = new();
-    private Dictionary<string, Dictionary<DateOnly, List<ExpenseItem>>> expenseCache = new();
-    
-    // Adhoc payment data
-    private List<AdhocPaymentItem> adhocPayments = new();
-    private Dictionary<string, Dictionary<DateOnly, List<AdhocPaymentItem>>> adhocPaymentCache = new();
+    // Unified adhoc transaction data
+    private List<AdhocTransactionItem> adhocTransactions = new();
+    private Dictionary<string, Dictionary<DateOnly, List<AdhocTransactionItem>>> adhocTransactionCache = new();
     
     private string currentMonthKey = string.Empty;
 
     // Dialog state for editing calendar items
-    private bool showExpenseDialog = false;
-    private FinancialItemDialog.FinancialItemDialogModel expenseDialogModel = new();
-    
-    private bool showAdhocPaymentDialog = false;
-    private FinancialItemDialog.FinancialItemDialogModel adhocPaymentDialogModel = new();
+    private bool showAdhocTransactionDialog = false;
+    private FinancialItemDialog.FinancialItemDialogModel adhocTransactionDialogModel = new();
 
     private bool showRecurringScheduleDialog = false;
     private UnifiedScheduleDialog.UnifiedScheduleDialogModel recurringScheduleDialogModel = new();
@@ -484,8 +417,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadRecurringSchedules();
-        LoadExpenses();
-        LoadAdhocPayments();
+        LoadAdhocTransactions();
         await LoadCurrentMonth();
     }
 
@@ -505,31 +437,17 @@
         }
     }
 
-    private void LoadExpenses()
+    private void LoadAdhocTransactions()
     {
         try
         {
-            // We'll load expenses for a broader range and cache them
+            // We'll load adhoc transactions for a broader range and cache them
             // For now, just initialize the collection
-            expenses = new List<ExpenseItem>();
+            adhocTransactions = new List<AdhocTransactionItem>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading expenses: {ex.Message}");
-        }
-    }
-
-    private void LoadAdhocPayments()
-    {
-        try
-        {
-            // We'll load adhoc payments for a broader range and cache them
-            // For now, just initialize the collection
-            adhocPayments = new List<AdhocPaymentItem>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading adhoc payments: {ex.Message}");
+            Console.WriteLine($"Error loading adhoc transactions: {ex.Message}");
         }
     }
 
@@ -541,8 +459,7 @@
         
         // Cache occurrences for current month
         await CacheRecurringScheduleOccurrences(now.Year, now.Month);
-        await CacheExpenses(now.Year, now.Month);
-        await CacheAdhocPayments(now.Year, now.Month);
+        await CacheAdhocTransactions(now.Year, now.Month);
         StateHasChanged();
     }
 
@@ -556,8 +473,7 @@
         
         // Cache occurrences for new month
         await CacheRecurringScheduleOccurrences(newDate.Year, newDate.Month);
-        await CacheExpenses(newDate.Year, newDate.Month);
-        await CacheAdhocPayments(newDate.Year, newDate.Month);
+        await CacheAdhocTransactions(newDate.Year, newDate.Month);
         StateHasChanged();
     }
 
@@ -610,10 +526,10 @@
         recurringScheduleOccurrenceCache[monthKey] = monthOccurrences;
     }
 
-    private async Task CacheExpenses(int year, int month)
+    private async Task CacheAdhocTransactions(int year, int month)
     {
         var monthKey = $"{year:D4}-{month:D2}";
-        if (expenseCache.ContainsKey(monthKey)) return; // Already cached
+        if (adhocTransactionCache.ContainsKey(monthKey)) return; // Already cached
 
         // Adjust for invalid months
         var adjustedDate = new DateTime(year, month, 1);
@@ -631,75 +547,29 @@
         var startDate = DateOnly.FromDateTime(adjustedDate);
         var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
 
-        var monthExpenses = new Dictionary<DateOnly, List<ExpenseItem>>();
+        var monthAdhocTransactions = new Dictionary<DateOnly, List<AdhocTransactionItem>>();
 
         try
         {
-            var expenses = await Http.GetFromJsonAsync<List<ExpenseItem>>($"api/v1/expenses/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
-            if (expenses != null)
+            var transactions = await Http.GetFromJsonAsync<List<AdhocTransactionItem>>($"api/v1/adhoc-transactions/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+            if (transactions != null)
             {
-                foreach (var expense in expenses)
+                foreach (var transaction in transactions)
                 {
-                    if (!monthExpenses.ContainsKey(expense.Date))
+                    if (!monthAdhocTransactions.ContainsKey(transaction.Date))
                     {
-                        monthExpenses[expense.Date] = new List<ExpenseItem>();
+                        monthAdhocTransactions[transaction.Date] = new List<AdhocTransactionItem>();
                     }
-                    monthExpenses[expense.Date].Add(expense);
+                    monthAdhocTransactions[transaction.Date].Add(transaction);
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading expenses for {monthKey}: {ex.Message}");
+            Console.WriteLine($"Error loading adhoc transactions for {monthKey}: {ex.Message}");
         }
 
-        expenseCache[monthKey] = monthExpenses;
-    }
-
-    private async Task CacheAdhocPayments(int year, int month)
-    {
-        var monthKey = $"{year:D4}-{month:D2}";
-        if (adhocPaymentCache.ContainsKey(monthKey)) return; // Already cached
-
-        // Adjust for invalid months
-        var adjustedDate = new DateTime(year, month, 1);
-        if (month < 1)
-        {
-            adjustedDate = new DateTime(year - 1, 12, 1);
-            monthKey = $"{year - 1:D4}-12";
-        }
-        else if (month > 12)
-        {
-            adjustedDate = new DateTime(year + 1, 1, 1);
-            monthKey = $"{year + 1:D4}-01";
-        }
-
-        var startDate = DateOnly.FromDateTime(adjustedDate);
-        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
-
-        var monthAdhocPayments = new Dictionary<DateOnly, List<AdhocPaymentItem>>();
-
-        try
-        {
-            var adhocPayments = await Http.GetFromJsonAsync<List<AdhocPaymentItem>>($"api/v1/adhoc-payments/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
-            if (adhocPayments != null)
-            {
-                foreach (var adhocPayment in adhocPayments)
-                {
-                    if (!monthAdhocPayments.ContainsKey(adhocPayment.Date))
-                    {
-                        monthAdhocPayments[adhocPayment.Date] = new List<AdhocPaymentItem>();
-                    }
-                    monthAdhocPayments[adhocPayment.Date].Add(adhocPayment);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading adhoc payments for {monthKey}: {ex.Message}");
-        }
-
-        adhocPaymentCache[monthKey] = monthAdhocPayments;
+        adhocTransactionCache[monthKey] = monthAdhocTransactions;
     }
 
     private List<RecurringScheduleItem> GetRecurringSchedulesForDay(DateOnly day)
@@ -711,22 +581,20 @@
         return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<RecurringScheduleItem>();
     }
 
-    private List<ExpenseItem> GetExpensesForDay(DateOnly day)
+    private List<AdhocTransactionItem> GetAdhocTransactionsForDay(DateOnly day)
     {
-        if (!expenseCache.ContainsKey(currentMonthKey))
-            return new List<ExpenseItem>();
+        if (!adhocTransactionCache.ContainsKey(currentMonthKey))
+            return new List<AdhocTransactionItem>();
 
-        var monthExpenses = expenseCache[currentMonthKey];
-        return monthExpenses.ContainsKey(day) ? monthExpenses[day] : new List<ExpenseItem>();
+        var monthTransactions = adhocTransactionCache[currentMonthKey];
+        return monthTransactions.ContainsKey(day) ? monthTransactions[day] : new List<AdhocTransactionItem>();
     }
 
-    private List<AdhocPaymentItem> GetAdhocPaymentsForDay(DateOnly day)
+    private int GetTotalItemsForDay(DateOnly day)
     {
-        if (!adhocPaymentCache.ContainsKey(currentMonthKey))
-            return new List<AdhocPaymentItem>();
-
-        var monthAdhocPayments = adhocPaymentCache[currentMonthKey];
-        return monthAdhocPayments.ContainsKey(day) ? monthAdhocPayments[day] : new List<AdhocPaymentItem>();
+        var recurringCount = GetRecurringSchedulesForDay(day).Count;
+        var transactionCount = GetAdhocTransactionsForDay(day).Count;
+        return recurringCount + transactionCount;
     }
 
     private string GetScheduleCardClass(RecurringScheduleItem schedule)
@@ -734,14 +602,19 @@
         return schedule.IsIncome ? "income-schedule-card" : "expense-schedule-card";
     }
 
-    private string GetScheduleNameLabelClass(RecurringScheduleItem schedule)
-    {
-        return schedule.IsIncome ? "income-schedule-name-label" : "expense-schedule-name-label";
-    }
-
     private string GetScheduleAmountLabelClass(RecurringScheduleItem schedule)
     {
         return schedule.IsIncome ? "income-schedule-amount-label" : "expense-schedule-amount-label";
+    }
+
+    private string GetTransactionCardClass(AdhocTransactionItem transaction)
+    {
+        return transaction.IsIncome ? "income-transaction-card" : "expense-transaction-card";
+    }
+
+    private string GetTransactionAmountLabelClass(AdhocTransactionItem transaction)
+    {
+        return transaction.IsIncome ? "income-transaction-amount-label" : "expense-transaction-amount-label";
     }
 
     private string GetScheduleTooltip(RecurringScheduleItem schedule)
@@ -750,16 +623,11 @@
         return $"{schedule.Recurrence} {typeText}: {schedule.DisplayName} - {schedule.Currency} ${schedule.DisplayAmount:N2} (Anchor: {schedule.Anchor:yyyy-MM-dd})";
     }
 
-    private string GetExpenseTooltip(ExpenseItem expense)
+    private string GetTransactionTooltip(AdhocTransactionItem transaction)
     {
-        var categoryText = !string.IsNullOrEmpty(expense.Category) ? $" ({expense.Category})" : "";
-        return $"Expense: {expense.Description}{categoryText} - {expense.Currency} ${expense.Amount:N2}";
-    }
-
-    private string GetAdhocPaymentTooltip(AdhocPaymentItem adhocPayment)
-    {
-        var categoryText = !string.IsNullOrEmpty(adhocPayment.Category) ? $" ({adhocPayment.Category})" : "";
-        return $"Payment: {adhocPayment.Description}{categoryText} - {adhocPayment.Currency} ${adhocPayment.Amount:N2}";
+        var typeText = transaction.IsIncome ? "Income" : "Expense";
+        var categoryText = !string.IsNullOrEmpty(transaction.Category) ? $" ({transaction.Category})" : "";
+        return $"{typeText}: {transaction.Description}{categoryText} - {transaction.Currency} ${transaction.DisplayAmount:N2}";
     }
 
     private string GetDayCssClass(DateOnly day, bool isToday, bool isCurrentMonth, bool hasEvents)
@@ -805,222 +673,144 @@
         StateHasChanged();
     }
 
-    private void OpenExpenseDialog(ExpenseItem expense)
+    private void OpenAdhocTransactionDialog(AdhocTransactionItem transaction)
     {
-        expenseDialogModel = new FinancialItemDialog.FinancialItemDialogModel
+        adhocTransactionDialogModel = new FinancialItemDialog.FinancialItemDialogModel
         {
-            Id = expense.Id,
-            Name = expense.Description,
-            Currency = expense.Currency,
-            Amount = expense.Amount,
-            DateTime = expense.Date.ToDateTime(TimeOnly.MinValue),
-            Category = expense.Category,
-            IsEditMode = true
+            Id = transaction.Id,
+            Name = transaction.Description,
+            Currency = transaction.Currency,
+            Amount = transaction.DisplayAmount, // Always use positive for display/editing
+            DateTime = transaction.Date.ToDateTime(TimeOnly.MinValue),
+            Category = transaction.Category,
+            IsEditMode = true,
+            TransactionType = transaction.TransactionType
         };
-        showExpenseDialog = true;
+        showAdhocTransactionDialog = true;
         StateHasChanged();
     }
     
-    private void OpenAdhocPaymentDialog(AdhocPaymentItem adhocPayment)
+    private void CloseAdhocTransactionDialog()
     {
-        adhocPaymentDialogModel = new FinancialItemDialog.FinancialItemDialogModel
-        {
-            Id = adhocPayment.Id,
-            Name = adhocPayment.Description,
-            Currency = adhocPayment.Currency,
-            Amount = adhocPayment.Amount,
-            DateTime = adhocPayment.Date.ToDateTime(TimeOnly.MinValue),
-            Category = adhocPayment.Category,
-            IsEditMode = true
-        };
-        showAdhocPaymentDialog = true;
+        showAdhocTransactionDialog = false;
+        adhocTransactionDialogModel = new FinancialItemDialog.FinancialItemDialogModel();
         StateHasChanged();
     }
     
-    private void CloseExpenseDialog()
+    private async Task SaveAdhocTransactionDialog()
     {
-        showExpenseDialog = false;
-        expenseDialogModel = new FinancialItemDialog.FinancialItemDialogModel();
-        StateHasChanged();
-    }
-    
-    private void CloseAdhocPaymentDialog()
-    {
-        showAdhocPaymentDialog = false;
-        adhocPaymentDialogModel = new FinancialItemDialog.FinancialItemDialogModel();
-        StateHasChanged();
-    }
-    
-    private async Task SaveExpenseDialog()
-    {
-        if (!expenseDialogModel.Validate(requireName: true))
+        if (!adhocTransactionDialogModel.Validate(requireName: true))
         {
             StateHasChanged();
             return;
         }
 
-        expenseDialogModel.IsSaving = true;
+        adhocTransactionDialogModel.IsSaving = true;
         StateHasChanged();
 
         try
         {
-            if (expenseDialogModel.IsEditMode && expenseDialogModel.Id.HasValue)
+            if (adhocTransactionDialogModel.IsEditMode && adhocTransactionDialogModel.Id.HasValue)
             {
-                // Update existing expense
-                var updateRequest = new UpdateExpenseRequest(
-                    Description: expenseDialogModel.Name!.Trim(),
-                    Currency: expenseDialogModel.Currency,
-                    Amount: expenseDialogModel.Amount!.Value,
-                    Date: DateOnly.FromDateTime(expenseDialogModel.DateTime),
-                    Category: string.IsNullOrWhiteSpace(expenseDialogModel.Category) ? null : expenseDialogModel.Category.Trim()
-                );
+                // Update existing transaction
+                var updateRequest = new
+                {
+                    Description = adhocTransactionDialogModel.Name!.Trim(),
+                    Currency = adhocTransactionDialogModel.Currency,
+                    Amount = adhocTransactionDialogModel.Amount!.Value,
+                    Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
+                    Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
+                };
 
-                var response = await Http.PutAsJsonAsync($"api/v1/expenses/{expenseDialogModel.Id.Value}", updateRequest);
+                var response = await Http.PutAsJsonAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}", updateRequest);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     // Clear cache and reload current month
-                    expenseCache.Clear();
-                    await CacheExpenses(currentMonth.Year, currentMonth.Month);
-                    CloseExpenseDialog();
+                    adhocTransactionCache.Clear();
+                    await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
+                    CloseAdhocTransactionDialog();
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to update expense: {response.StatusCode}");
+                    Console.WriteLine($"Failed to update adhoc transaction: {response.StatusCode}");
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating expense: {ex.Message}");
-        }
-        finally
-        {
-            expenseDialogModel.IsSaving = false;
-            StateHasChanged();
-        }
-    }
-    
-    private async Task SaveAdhocPaymentDialog()
-    {
-        if (!adhocPaymentDialogModel.Validate(requireName: true))
-        {
-            StateHasChanged();
-            return;
-        }
-
-        adhocPaymentDialogModel.IsSaving = true;
-        StateHasChanged();
-
-        try
-        {
-            if (adhocPaymentDialogModel.IsEditMode && adhocPaymentDialogModel.Id.HasValue)
+            else
             {
-                // Update existing adhoc payment
-                var updateRequest = new UpdateAdhocPaymentRequest(
-                    Description: adhocPaymentDialogModel.Name!.Trim(),
-                    Currency: adhocPaymentDialogModel.Currency,
-                    Amount: adhocPaymentDialogModel.Amount!.Value,
-                    Date: DateOnly.FromDateTime(adhocPaymentDialogModel.DateTime),
-                    Category: string.IsNullOrWhiteSpace(adhocPaymentDialogModel.Category) ? null : adhocPaymentDialogModel.Category.Trim()
-                );
+                // Create new transaction
+                var createRequest = new
+                {
+                    Description = adhocTransactionDialogModel.Name!.Trim(),
+                    Currency = adhocTransactionDialogModel.Currency,
+                    Amount = adhocTransactionDialogModel.Amount!.Value,
+                    Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
+                    Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
+                };
 
-                var response = await Http.PutAsJsonAsync($"api/v1/adhoc-payments/{adhocPaymentDialogModel.Id.Value}", updateRequest);
+                var endpoint = adhocTransactionDialogModel.TransactionType == TransactionType.Income 
+                    ? "api/v1/adhoc-transactions/income" 
+                    : "api/v1/adhoc-transactions/expenses";
+
+                var response = await Http.PostAsJsonAsync(endpoint, createRequest);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     // Clear cache and reload current month
-                    adhocPaymentCache.Clear();
-                    await CacheAdhocPayments(currentMonth.Year, currentMonth.Month);
-                    CloseAdhocPaymentDialog();
+                    adhocTransactionCache.Clear();
+                    await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
+                    CloseAdhocTransactionDialog();
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to update adhoc payment: {response.StatusCode}");
+                    Console.WriteLine($"Failed to create adhoc transaction: {response.StatusCode}");
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error updating adhoc payment: {ex.Message}");
+            Console.WriteLine($"Error saving adhoc transaction: {ex.Message}");
         }
         finally
         {
-            adhocPaymentDialogModel.IsSaving = false;
+            adhocTransactionDialogModel.IsSaving = false;
             StateHasChanged();
         }
     }
     
-    private async Task DeleteExpense()
+    private async Task DeleteAdhocTransaction()
     {
-        if (!expenseDialogModel.IsEditMode || !expenseDialogModel.Id.HasValue)
+        if (!adhocTransactionDialogModel.IsEditMode || !adhocTransactionDialogModel.Id.HasValue)
         {
             return;
         }
 
-        expenseDialogModel.IsDeleting = true;
+        adhocTransactionDialogModel.IsDeleting = true;
         StateHasChanged();
 
         try
         {
-            var response = await Http.DeleteAsync($"api/v1/expenses/{expenseDialogModel.Id.Value}");
+            var response = await Http.DeleteAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}");
             
             if (response.IsSuccessStatusCode)
             {
                 // Clear cache and reload current month
-                expenseCache.Clear();
-                await CacheExpenses(currentMonth.Year, currentMonth.Month);
-                CloseExpenseDialog();
+                adhocTransactionCache.Clear();
+                await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
+                CloseAdhocTransactionDialog();
             }
             else
             {
-                Console.WriteLine($"Failed to delete expense: {response.StatusCode}");
+                Console.WriteLine($"Failed to delete adhoc transaction: {response.StatusCode}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting expense: {ex.Message}");
+            Console.WriteLine($"Error deleting adhoc transaction: {ex.Message}");
         }
         finally
         {
-            expenseDialogModel.IsDeleting = false;
-            StateHasChanged();
-        }
-    }
-    
-    private async Task DeleteAdhocPayment()
-    {
-        if (!adhocPaymentDialogModel.IsEditMode || !adhocPaymentDialogModel.Id.HasValue)
-        {
-            return;
-        }
-
-        adhocPaymentDialogModel.IsDeleting = true;
-        StateHasChanged();
-
-        try
-        {
-            var response = await Http.DeleteAsync($"api/v1/adhoc-payments/{adhocPaymentDialogModel.Id.Value}");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                // Clear cache and reload current month
-                adhocPaymentCache.Clear();
-                await CacheAdhocPayments(currentMonth.Year, currentMonth.Month);
-                CloseAdhocPaymentDialog();
-            }
-            else
-            {
-                Console.WriteLine($"Failed to delete adhoc payment: {response.StatusCode}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting adhoc payment: {ex.Message}");
-        }
-        finally
-        {
-            adhocPaymentDialogModel.IsDeleting = false;
+            adhocTransactionDialogModel.IsDeleting = false;
             StateHasChanged();
         }
     }
@@ -1049,14 +839,15 @@
             if (recurringScheduleDialogModel.IsEditMode && recurringScheduleDialogModel.Id.HasValue)
             {
                 // Update existing schedule
-                var updateRequest = new UpdateRecurringScheduleRequest(
-                    Name: string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim(),
-                    Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                    Currency: recurringScheduleDialogModel.Currency,
-                    Amount: recurringScheduleDialogModel.Amount!.Value,
-                    Recurrence: recurringScheduleDialogModel.Recurrence,
-                    CustomIntervalDays: recurringScheduleDialogModel.DaysInterval
-                );
+                var updateRequest = new
+                {
+                    Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim(),
+                    Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                    Currency = recurringScheduleDialogModel.Currency,
+                    Amount = recurringScheduleDialogModel.Amount!.Value,
+                    Recurrence = recurringScheduleDialogModel.Recurrence,
+                    CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
+                };
 
                 var response = await Http.PutAsJsonAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}", updateRequest);
                 
@@ -1076,16 +867,17 @@
             else
             {
                 // Create new schedule
-                if (recurringScheduleDialogModel.ScheduleType == ScheduleType.Income)
+                if (recurringScheduleDialogModel.ScheduleType == Api.ScheduleType.Income)
                 {
-                    var createRequest = new CreateIncomeScheduleRequest(
-                        Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                        Currency: recurringScheduleDialogModel.Currency,
-                        Amount: recurringScheduleDialogModel.Amount!.Value,
-                        Recurrence: recurringScheduleDialogModel.Recurrence,
-                        CustomIntervalDays: recurringScheduleDialogModel.DaysInterval,
-                        Name: string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim()
-                    );
+                    var createRequest = new
+                    {
+                        Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                        Currency = recurringScheduleDialogModel.Currency,
+                        Amount = recurringScheduleDialogModel.Amount!.Value,
+                        Recurrence = recurringScheduleDialogModel.Recurrence,
+                        CustomIntervalDays = recurringScheduleDialogModel.DaysInterval,
+                        Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim()
+                    };
 
                     var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/income", createRequest);
                     if (response.IsSuccessStatusCode)
@@ -1099,14 +891,15 @@
                 }
                 else
                 {
-                    var createRequest = new CreateExpenseScheduleRequest(
-                        Name: recurringScheduleDialogModel.Name!.Trim(),
-                        Anchor: DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                        Currency: recurringScheduleDialogModel.Currency,
-                        Amount: recurringScheduleDialogModel.Amount!.Value,
-                        Recurrence: recurringScheduleDialogModel.Recurrence,
-                        CustomIntervalDays: recurringScheduleDialogModel.DaysInterval
-                    );
+                    var createRequest = new
+                    {
+                        Name = recurringScheduleDialogModel.Name!.Trim(),
+                        Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                        Currency = recurringScheduleDialogModel.Currency,
+                        Amount = recurringScheduleDialogModel.Amount!.Value,
+                        Recurrence = recurringScheduleDialogModel.Recurrence,
+                        CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
+                    };
 
                     var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/expenses", createRequest);
                     if (response.IsSuccessStatusCode)
@@ -1204,9 +997,9 @@
     {
         recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel
         {
-            ScheduleType = ScheduleType.Income,
+            ScheduleType = Api.ScheduleType.Income,
             DateTime = date.ToDateTime(TimeOnly.MinValue),
-            Recurrence = RecurrencePattern.Monthly,
+            Recurrence = Api.RecurrencePattern.Monthly,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
@@ -1218,9 +1011,9 @@
     {
         recurringScheduleDialogModel = new UnifiedScheduleDialog.UnifiedScheduleDialogModel
         {
-            ScheduleType = ScheduleType.Expense,
+            ScheduleType = Api.ScheduleType.Expense,
             DateTime = date.ToDateTime(TimeOnly.MinValue),
-            Recurrence = RecurrencePattern.Monthly,
+            Recurrence = Api.RecurrencePattern.Monthly,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
@@ -1228,27 +1021,29 @@
         StateHasChanged();
     }
 
-    private void AddNewExpenseForDay(DateOnly date)
+    private void AddNewIncomeTransactionForDay(DateOnly date)
     {
-        expenseDialogModel = new FinancialItemDialog.FinancialItemDialogModel
+        adhocTransactionDialogModel = new FinancialItemDialog.FinancialItemDialogModel
         {
             DateTime = date.ToDateTime(TimeOnly.MinValue),
+            TransactionType = Domain.TransactionType.Income,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
-        showExpenseDialog = true;
+        showAdhocTransactionDialog = true;
         StateHasChanged();
     }
 
-    private void AddNewPaymentForDay(DateOnly date)
+    private void AddNewExpenseTransactionForDay(DateOnly date)
     {
-        adhocPaymentDialogModel = new FinancialItemDialog.FinancialItemDialogModel
+        adhocTransactionDialogModel = new FinancialItemDialog.FinancialItemDialogModel
         {
             DateTime = date.ToDateTime(TimeOnly.MinValue),
+            TransactionType = Domain.TransactionType.Expense,
             IsEditMode = false
         };
         CloseDayDetailsDialog();
-        showAdhocPaymentDialog = true;
+        showAdhocTransactionDialog = true;
         StateHasChanged();
     }
 
@@ -1259,16 +1054,10 @@
         OpenRecurringScheduleDialog(schedule);
     }
     
-    private void HandleEditExpenseFromDay(ExpenseItem expense)
+    private void HandleEditAdhocTransactionFromDay(AdhocTransactionItem transaction)
     {
         CloseDayDetailsDialog();
-        OpenExpenseDialog(expense);
-    }
-    
-    private void HandleEditAdhocPaymentFromDay(AdhocPaymentItem adhocPayment)
-    {
-        CloseDayDetailsDialog();
-        OpenAdhocPaymentDialog(adhocPayment);
+        OpenAdhocTransactionDialog(transaction);
     }
 
     private CalendarMonth BuildCalendarMonth(int year, int month)

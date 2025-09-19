@@ -1,6 +1,7 @@
 namespace BudgetExperiment.Infrastructure;
 
 using BudgetExperiment.Domain;
+using BudgetExperiment.Infrastructure.Data.Repositories;
 using BudgetExperiment.Infrastructure.Repositories;
 
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,11 @@ public static class DependencyInjection
         services.AddScoped<IAdhocPaymentWriteRepository, AdhocPaymentWriteRepository>();
         services.AddScoped<IRecurringScheduleReadRepository, RecurringScheduleReadRepository>();
         services.AddScoped<IRecurringScheduleWriteRepository, RecurringScheduleWriteRepository>();
+
+        // Add new unified repositories
+        services.AddScoped<IAdhocTransactionReadRepository, AdhocTransactionReadRepository>();
+        services.AddScoped<IAdhocTransactionWriteRepository, AdhocTransactionWriteRepository>();
+
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<BudgetDbContext>());
         return services;
     }

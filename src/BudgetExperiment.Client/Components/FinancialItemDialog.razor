@@ -1,4 +1,5 @@
 @inject IJSRuntime JS
+@using BudgetExperiment.Domain
 
 <FluentDialog Hidden="@(!IsVisible)" 
               Modal="true" 
@@ -11,6 +12,17 @@
 
     <FluentDialogBody>
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <!-- Transaction Type (only for adhoc transactions) -->
+            @if (ShowTransactionTypeField)
+            {
+                <FluentRadioGroup @bind-Value="Model.TransactionTypeString"
+                                  Label="Transaction Type"
+                                  Style="width: 100%;">
+                    <FluentRadio Value="@nameof(TransactionType.Income)">Income (+)</FluentRadio>
+                    <FluentRadio Value="@nameof(TransactionType.Expense)">Expense (-)</FluentRadio>
+                </FluentRadioGroup>
+            }
+
             <!-- Name/Description Field -->
             <FluentTextField @bind-Value="Model.Name"
                              Label="@NameLabel"
@@ -124,6 +136,7 @@
     [Parameter] public string SaveButtonText { get; set; } = "Save";
     [Parameter] public bool ShowCategoryField { get; set; } = false;
     [Parameter] public bool ShowRecurrenceField { get; set; } = false;
+    [Parameter] public bool ShowTransactionTypeField { get; set; } = false;
     [Parameter] public List<string> RecurrenceOptions { get; set; } = new() { "Monthly" };
     [Parameter] public FinancialItemDialogModel Model { get; set; } = new();
     [Parameter] public EventCallback OnCancel { get; set; }
@@ -140,8 +153,15 @@
         public DateTime DateTime { get; set; } = DateTime.Today;
         public string? Category { get; set; }
         public string Recurrence { get; set; } = "Monthly";
+        public TransactionType TransactionType { get; set; } = TransactionType.Expense;
         public bool IsSaving { get; set; }
         public bool IsDeleting { get; set; }
+
+        public string TransactionTypeString
+        {
+            get => TransactionType.ToString();
+            set => TransactionType = Enum.TryParse<TransactionType>(value, out var result) ? result : TransactionType.Expense;
+        }
 
         public string DateString
         {
@@ -190,7 +210,8 @@
         if (OnDelete.HasDelegate)
         {
             // Simple confirmation - you could enhance this with a proper confirmation dialog
-            var itemType = Title?.ToLower().Contains("payment") == true ? "payment" : "expense";
+            var itemType = Title?.ToLower().Contains("transaction") == true ? "transaction" : 
+                          Title?.ToLower().Contains("payment") == true ? "payment" : "expense";
             var confirmMessage = $"Are you sure you want to delete this {itemType}?";
             
             // Note: This uses the browser's confirm dialog. For a more polished solution,

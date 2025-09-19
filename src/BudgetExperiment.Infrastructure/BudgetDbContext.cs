@@ -25,6 +25,9 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     /// <summary>Gets adhoc payments set.</summary>
     public DbSet<AdhocPayment> AdhocPayments => this.Set<AdhocPayment>();
 
+    /// <summary>Gets unified adhoc transactions set.</summary>
+    public DbSet<AdhocTransaction> AdhocTransactions => this.Set<AdhocTransaction>();
+
     /// <summary>Gets recurring schedules set.</summary>
     public DbSet<RecurringSchedule> RecurringSchedules => this.Set<RecurringSchedule>();
 
@@ -77,6 +80,25 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
             a.HasIndex(x => x.Date); // Index for date-based queries
         });
 
+        // AdhocTransaction mapping (unified Expense and AdhocPayment replacement)
+        modelBuilder.Entity<AdhocTransaction>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.Description).IsRequired().HasMaxLength(500);
+            a.Property(x => x.TransactionType).IsRequired();
+            a.OwnsOne(typeof(MoneyValue), "Money", mv =>
+            {
+                mv.Property("Currency").HasColumnName("MoneyCurrency").HasMaxLength(3).IsRequired();
+                mv.Property("Amount").HasColumnName("MoneyValue").HasColumnType("numeric(18,2)").IsRequired();
+            });
+            a.Property(x => x.Date).HasConversion(new DateOnlyConverter()).IsRequired();
+            a.Property(x => x.Category).HasMaxLength(100);
+            a.Property(x => x.CreatedUtc).IsRequired();
+            a.Property(x => x.UpdatedUtc);
+            a.HasIndex(x => x.Date); // Index for date-based queries
+            a.HasIndex(x => x.TransactionType); // Index for filtering by income/expense
+        });
+
         // RecurringSchedule mapping (unified PaySchedule and BillSchedule replacement)
         modelBuilder.Entity<RecurringSchedule>(r =>
         {
@@ -111,6 +133,10 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
                 else if (entry.Entity is AdhocPayment adhocPayment)
                 {
                     adhocPayment.MarkUpdated();
+                }
+                else if (entry.Entity is AdhocTransaction adhocTransaction)
+                {
+                    adhocTransaction.MarkUpdated();
                 }
                 else if (entry.Entity is RecurringSchedule recurringSchedule)
                 {
