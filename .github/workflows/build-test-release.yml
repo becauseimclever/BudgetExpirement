@@ -10,7 +10,7 @@ jobs:
   build-test-publish-release:
     runs-on: ubuntu-latest
     env:
-      DOTNET_VERSION: '8.0.x'
+      DOTNET_VERSION: '10.0.100-rc.1'
       API_PROJECT: 'src/BudgetExperiment.Api/BudgetExperiment.Api.csproj'
     steps:
       - name: Checkout repository
@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'release'
 
       - name: Restore dependencies
         run: dotnet restore BudgetExperiment.sln
