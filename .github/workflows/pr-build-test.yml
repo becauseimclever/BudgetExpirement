@@ -1,0 +1,30 @@
+name: PR Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_VERSION: '10.x'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore BudgetExperiment.sln
+
+      - name: Build solution
+        run: dotnet build BudgetExperiment.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test BudgetExperiment.sln --configuration Release --no-build --logger trx
