@@ -10,7 +10,7 @@ jobs:
   build-test-publish-release:
     runs-on: ubuntu-latest
     env:
-      DOTNET_VERSION: '10.0.100-rc.1'
+      DOTNET_VERSION: '10.x'
       API_PROJECT: 'src/BudgetExperiment.Api/BudgetExperiment.Api.csproj'
     steps:
       - name: Checkout repository
