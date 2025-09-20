@@ -115,6 +115,7 @@ Tests under `tests/` mirroring structure:
 
 ## 17. Security & Configuration
 - Store connection strings & secrets outside code (user-secrets/local env). NEVER commit secrets.
+- **Database Connection**: The database connection string (`AppDb`) is stored in user secrets for the API project (`BudgetExperiment.Api`). Use `dotnet user-secrets set "ConnectionStrings:AppDb" "<connection-string>"` to configure locally.
 - Validate all external inputs (DTO validation). Avoid over-posting.
 - Use HTTPS redirection & security headers middleware.
 
@@ -219,7 +220,7 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 
 ## 33. Client-Server Development Workflow
 - **CRITICAL**: The Blazor WebAssembly client (`BudgetExperiment.Client`) is hosted by the API (`BudgetExperiment.Api`) and should NEVER be run standalone.
-- **Only run the API**: `dotnet run --project c:\ws\BudgetExpirement\src\BudgetExperiment.Api\BudgetExperiment.Api.csproj`
+- **Only run the API**: `dotnet run --project c:\ws\BudgetExperiment\src\BudgetExperiment.Api\BudgetExperiment.Api.csproj`
 - The API serves both the REST endpoints AND hosts the Blazor WebAssembly client.
 - The client is served from the API's wwwroot and makes HTTP calls to the same server's API endpoints.
 - For development, only one terminal is needed:

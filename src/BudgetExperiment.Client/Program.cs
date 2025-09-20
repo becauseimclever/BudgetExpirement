@@ -1,5 +1,7 @@
-﻿#pragma warning disable SA1633 // File header temporarily disabled
+#pragma warning disable SA1633 // File header temporarily disabled
 using BudgetExperiment.Client;
+using BudgetExperiment.Client.Api;
+using BudgetExperiment.Client.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -9,10 +11,15 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<BudgetExperiment.Client.Api.IBudgetApiClient, BudgetExperiment.Client.Api.BudgetApiClient>();
 
 // Add FluentUI services
 builder.Services.AddFluentUIComponents();
+
+// Add API client services
+builder.Services.AddScoped<IBudgetApiClient, BudgetApiClient>();
+
+// Add calendar data service
+builder.Services.AddScoped<CalendarDataService>();
 
 await builder.Build().RunAsync();
 #pragma warning restore SA1633

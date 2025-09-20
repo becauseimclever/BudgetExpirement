@@ -1,9 +1,8 @@
 namespace BudgetExperiment.Application;
 
-using BudgetExperiment.Application.AdhocPayments;
 using BudgetExperiment.Application.AdhocTransactions;
-using BudgetExperiment.Application.Expenses;
 using BudgetExperiment.Application.RecurringSchedules;
+using BudgetExperiment.Application.RunningTotals;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,11 +17,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
-        services.AddScoped<ExpenseService>();
-        services.AddScoped<AdhocPaymentService>();
-
-        // Add new unified service
         services.AddScoped<IAdhocTransactionService, AdhocTransactionService>();
+        services.AddScoped<IRunningTotalService, RunningTotalService>();
 
         return services;
     }

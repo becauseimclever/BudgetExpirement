@@ -42,6 +42,23 @@ public sealed record MoneyValue
     }
 
     /// <summary>
+    /// Subtracts two monetary values of the same currency.
+    /// </summary>
+    /// <param name="left">Left operand.</param>
+    /// <param name="right">Right operand.</param>
+    /// <returns>Difference <see cref="MoneyValue"/>.</returns>
+    /// <exception cref="DomainException">Thrown when currencies differ.</exception>
+    public static MoneyValue operator -(MoneyValue left, MoneyValue right)
+    {
+        if (!string.Equals(left.Currency, right.Currency, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new DomainException("Cannot subtract amounts with different currencies.");
+        }
+
+        return Create(left.Currency, left.Amount - right.Amount);
+    }
+
+    /// <summary>
     /// Returns the zero monetary value for the provided currency.
     /// </summary>
     /// <param name="currency">ISO currency code.</param>
@@ -52,7 +69,7 @@ public sealed record MoneyValue
     /// Factory with validation and normalization.
     /// </summary>
     /// <param name="currency">ISO currency code.</param>
-    /// <param name="amount">Amount (>= 0).</param>
+    /// <param name="amount">Amount (can be positive, negative, or zero).</param>
     /// <returns>Validated monetary value.</returns>
     /// <exception cref="DomainException">Thrown when invalid.</exception>
     public static MoneyValue Create(string currency, decimal amount)
@@ -62,13 +79,20 @@ public sealed record MoneyValue
             throw new DomainException("Currency is required.");
         }
 
-        if (amount < 0m)
-        {
-            throw new DomainException("Amount cannot be negative.");
-        }
-
         return new MoneyValue(currency.Trim().ToUpperInvariant(), decimal.Round(amount, 2, MidpointRounding.AwayFromZero));
     }
+
+    /// <summary>
+    /// Gets the absolute value of this monetary amount.
+    /// </summary>
+    /// <returns>A new <see cref="MoneyValue"/> with the absolute amount.</returns>
+    public MoneyValue Abs() => Create(this.Currency, Math.Abs(this.Amount));
+
+    /// <summary>
+    /// Gets the negated value of this monetary amount.
+    /// </summary>
+    /// <returns>A new <see cref="MoneyValue"/> with the negated amount.</returns>
+    public MoneyValue Negate() => Create(this.Currency, -this.Amount);
 
     /// <inheritdoc />
     public override string ToString() => $"{this.Currency} {this.Amount:0.00}";

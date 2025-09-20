@@ -10,6 +10,9 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="BudgetExperiment.Client.styles.css" rel="stylesheet" />
     <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" rel="stylesheet" />
+    <!-- Add FluentUI icon stylesheets -->
+    <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent.css" rel="stylesheet" />
+    <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent-icons.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -33,6 +36,15 @@
             if (element) {
                 element.focus();
             }
+        };
+
+        window.focusElement = function (elementId) {
+            setTimeout(() => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.focus();
+                }
+            }, 100);
         };
     </script>
 </body>

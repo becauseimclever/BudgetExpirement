@@ -1,11 +1,14 @@
 @page "/"
 @page "/fluentcalendar"
 @inject IJSRuntime JS
-@inject HttpClient Http
+@inject CalendarDataService DataService
 @using Microsoft.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components
 @using BudgetExperiment.Client.Components
+@using BudgetExperiment.Client.Components.Calendar
 @using BudgetExperiment.Client.Api
+@using BudgetExperiment.Client.Models
+@using BudgetExperiment.Client.Services
 @using BudgetExperiment.Domain
 
 <PageTitle>Budget Calendar</PageTitle>
@@ -14,136 +17,17 @@
     <!-- Combined Calendar Card -->
     <FluentCard Style="margin: 16px; flex: 1; overflow: hidden;">
         <!-- Calendar Header -->
-        <FluentStack Orientation="Orientation.Horizontal" 
-                     HorizontalAlignment="HorizontalAlignment.Center" 
-                     VerticalAlignment="VerticalAlignment.Center" 
-                     Style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
-            <FluentButton Appearance="Appearance.Outline" 
-                          OnClick="() => NavigateMonth(-1)"
-                          Style="margin-right: 24px;">
-                Previous
-            </FluentButton>
-            
-            <FluentLabel Typo="Typography.PageTitle" 
-                         Style="min-width: 200px; text-align: center;">
-                @currentMonth.MonthName @currentMonth.Year
-            </FluentLabel>
-            
-            <FluentButton Appearance="Appearance.Outline" 
-                          OnClick="() => NavigateMonth(1)"
-                          Style="margin-left: 24px;">
-                Next
-            </FluentButton>
-        </FluentStack>
+        <CalendarHeader MonthName="@currentMonth.MonthName" 
+                        Year="@currentMonth.Year"
+                        OnNavigateMonth="NavigateMonth" />
 
         <!-- Calendar Grid -->
-        <div class="fluent-calendar-container">
-            <div class="calendar-grid">
-                <!-- Day Headers -->
-                @foreach (var dayName in weekDayHeaders)
-                {
-                    <div class="calendar-header-cell">
-                        <FluentLabel Typo="Typography.Body">
-                            @dayName
-                        </FluentLabel>
-                    </div>
-                }
-                
-                <!-- Calendar Days -->
-                @foreach (var week in currentMonth.Weeks)
-                {
-                    @foreach (var day in week)
-                    {
-                        if (day == DateOnly.MinValue)
-                        {
-                            <div class="calendar-cell empty-cell"></div>
-                        }
-                        else
-                        {
-                            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                            var isCurrentMonth = day.Month == currentMonth.Month;
-                            var recurringSchedulesForDay = GetRecurringSchedulesForDay(day);
-                            var adhocTransactionsForDay = GetAdhocTransactionsForDay(day);
-                            var hasEvents = recurringSchedulesForDay.Any() || adhocTransactionsForDay.Any();
-                            
-                            <div class="calendar-cell @GetDayCssClass(day, isToday, isCurrentMonth, hasEvents)"
-                                 @onclick="() => OpenDayDetailsDialog(day)">
-                                <div style="height: 100%; padding: 8px; position: relative;">
-                                    <FluentLabel Typo="Typography.Body" 
-                                                 Style="@GetDayNumberStyle(isToday, isCurrentMonth)">
-                                        @day.Day
-                                    </FluentLabel>
-                                    
-                                    <!-- Schedule badges -->
-                                    <div class="day-events" style="margin-top: 8px;">
-                                        @{
-                                            var allItems = new List<object>();
-                                            allItems.AddRange(recurringSchedulesForDay.Cast<object>());
-                                            allItems.AddRange(adhocTransactionsForDay.Cast<object>());
-                                            
-                                            const int maxVisibleItems = 3;
-                                            var visibleItems = allItems.Take(maxVisibleItems).ToList();
-                                            var hiddenCount = Math.Max(0, allItems.Count - maxVisibleItems);
-                                        }
-                                        
-                                        <!-- Visible Schedule Items -->
-                                        @foreach (var item in visibleItems)
-                                        {
-                                            @if (item is RecurringScheduleItem schedule)
-                                            {
-                                                <FluentCard Class="@GetScheduleCardClass(schedule)" 
-                                                            Title="@GetScheduleTooltip(schedule)"
-                                                            Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                            @onclick:stopPropagation="true">
-                                                    <div @onclick="@(() => OpenRecurringScheduleDialog(schedule))">
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="@GetScheduleAmountLabelClass(schedule)"
-                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600; text-align: center; width: 100%;">
-                                                            @schedule.FormattedAmount
-                                                        </FluentLabel>
-                                                    </div>
-                                                </FluentCard>
-                                            }
-                                            else if (item is AdhocTransactionItem transaction)
-                                            {
-                                                <FluentCard Class="@GetTransactionCardClass(transaction)" 
-                                                            Title="@GetTransactionTooltip(transaction)"
-                                                            Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer;"
-                                                            @onclick:stopPropagation="true">
-                                                    <div @onclick="@(() => OpenAdhocTransactionDialog(transaction))">
-                                                        <FluentLabel Typo="Typography.Body" 
-                                                                     Class="@GetTransactionAmountLabelClass(transaction)"
-                                                                     Style="line-height: 1; margin: 0; font-size: 10px; font-weight: 600; text-align: center; width: 100%;">
-                                                            @transaction.FormattedAmount
-                                                        </FluentLabel>
-                                                    </div>
-                                                </FluentCard>
-                                            }
-                                        }
-                                        
-                                        <!-- More Items Indicator -->
-                                        @if (hiddenCount > 0)
-                                        {
-                                            <FluentCard Class="more-items-indicator" 
-                                                        Title="@($"Click to see all {allItems.Count} items for this day")"
-                                                        Style="margin: 1px 0; padding: 2px 4px; min-height: auto; cursor: pointer; background-color: var(--neutral-layer-3) !important; border: 1px dashed var(--neutral-stroke-control-default) !important;"
-                                                        @onclick:stopPropagation="true">
-                                                <div @onclick="@(() => OpenDayDetailsDialog(day))">
-                                                    <FluentLabel Typo="Typography.Body" 
-                                                                 Style="line-height: 1; margin: 0; font-size: 9px; color: var(--neutral-foreground-secondary); text-align: center; width: 100%;">
-                                                        +@hiddenCount more...
-                                                    </FluentLabel>
-                                                </div>
-                                            </FluentCard>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    }
-                }
-            </div>
-        </div>
+        <CalendarGrid CurrentMonth="@currentMonth"
+                      CurrentMonthKey="@currentMonthKey"
+                      DataService="@DataService"
+                      OnDayClick="OpenDayDetailsDialog"
+                      OnEditSchedule="OpenRecurringScheduleDialog"
+                      OnEditTransaction="OpenAdhocTransactionDialog" />
     </FluentCard>
 </FluentStack>
 
@@ -184,223 +68,8 @@
                          OnEditRecurringSchedule="EventCallback.Factory.Create<RecurringScheduleItem>(this, HandleEditRecurringScheduleFromDay)"
                          OnEditAdhocTransaction="EventCallback.Factory.Create<AdhocTransactionItem>(this, HandleEditAdhocTransactionFromDay)" />
 
-<style>
-    .fluent-calendar-container {
-        height: calc(100vh - 200px);
-        min-height: 500px;
-        overflow: hidden;
-        padding: var(--design-unit-4);
-    }
-    
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        grid-template-rows: auto repeat(6, 1fr);
-        height: 100%;
-        min-height: 480px;
-        gap: var(--stroke-width);
-        background-color: var(--neutral-stroke-divider);
-        border-radius: var(--control-corner-radius);
-        overflow: hidden;
-        border: var(--stroke-width) solid var(--neutral-stroke-control-default);
-    }
-    
-    .calendar-header-cell {
-        background-color: var(--neutral-layer-2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--design-unit-4) var(--design-unit-2);
-        min-height: 48px;
-        height: 48px;
-        color: var(--neutral-foreground-primary);
-        font-weight: var(--font-weight-semibold);
-        border: var(--stroke-width) solid var(--neutral-stroke-control-default);
-    }
-    
-    .calendar-cell {
-        background-color: var(--neutral-layer-1);
-        position: relative;
-        transition: background-color var(--duration-fast-out) var(--curve-decelerate-mid);
-        min-height: 80px;
-        height: 80px;
-        border: var(--stroke-width) solid var(--neutral-stroke-control-default);
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .calendar-cell:hover:not(.empty-cell) {
-        background-color: var(--neutral-layer-2);
-        cursor: pointer;
-    }
-    
-    .calendar-cell.empty-cell {
-        background-color: var(--neutral-layer-card);
-        opacity: var(--disabled-opacity);
-    }
-    
-    .calendar-cell.today {
-        background-color: var(--accent-fill-rest);
-        color: var(--accent-foreground-rest);
-        border-color: var(--accent-stroke-control-default);
-        box-shadow: inset 0 0 0 var(--stroke-width) var(--accent-stroke-control-default);
-    }
-    
-    .calendar-cell.today:hover {
-        background-color: var(--accent-fill-hover);
-    }
-
-    .calendar-cell.today .income-schedule-card,
-    .calendar-cell.today .expense-schedule-card,
-    .calendar-cell.today .income-transaction-card,
-    .calendar-cell.today .expense-transaction-card {
-        background-color: var(--neutral-layer-1) !important;
-        color: var(--neutral-foreground-primary) !important;
-        border-color: var(--neutral-stroke-control-default) !important;
-    }
-    
-    .calendar-cell.other-month {
-        opacity: 0.6;
-    }
-    
-    .calendar-cell.event-day {
-        border-left: calc(var(--stroke-width) * 4) solid var(--palette-blue-foreground-1);
-    }
-    
-    .calendar-cell.event-day:not(.today) {
-        background-color: var(--palette-blue-tint-60);
-    }
-    
-    .calendar-cell.event-day:hover:not(.today) {
-        background-color: var(--palette-blue-tint-50);
-    }
-    
-    .day-events {
-        display: flex;
-        flex-direction: column;
-        gap: var(--design-unit-1);
-        align-items: flex-end;
-        position: absolute;
-        bottom: var(--design-unit-1);
-        right: var(--design-unit-1);
-        max-width: calc(100% - var(--design-unit-4));
-        max-height: calc(100% - 40px); /* Reserve space for day number */
-        overflow: hidden;
-    }
-
-    .more-items-indicator {
-        background-color: var(--neutral-layer-3) !important;
-        color: var(--neutral-foreground-secondary) !important;
-        border: 1px dashed var(--neutral-stroke-control-default) !important;
-        box-shadow: none !important;
-        font-size: var(--type-ramp-minus-2-font-size) !important;
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-        opacity: 0.8;
-        transition: opacity 0.2s ease;
-    }
-    
-    .more-items-indicator:hover {
-        opacity: 1;
-        background-color: var(--neutral-layer-4) !important;
-    }
-    
-    .income-schedule-card,
-    .income-transaction-card {
-        background-color: var(--palette-green-background-1) !important;
-        color: var(--palette-green-foreground-1) !important;
-        border-color: var(--palette-green-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
-        font-size: var(--type-ramp-minus-2-font-size) !important;
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-        min-height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .expense-schedule-card,
-    .expense-transaction-card {
-        background-color: var(--palette-red-background-1) !important;
-        color: var(--palette-red-foreground-1) !important;
-        border-color: var(--palette-red-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
-        font-size: var(--type-ramp-minus-2-font-size) !important;
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-        min-height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .income-schedule-amount-label,
-    .income-transaction-amount-label {
-        color: var(--palette-green-foreground-1) !important;
-        font-weight: 700 !important;
-    }
-
-    .expense-schedule-amount-label,
-    .expense-transaction-amount-label {
-        color: var(--palette-red-foreground-1) !important;
-        font-weight: 700 !important;
-    }
-
-    @@media (max-width: 768px) {
-        .fluent-calendar-container {
-            padding: var(--design-unit-2);
-        }
-        
-        .calendar-grid {
-            grid-template-rows: auto repeat(6, minmax(60px, 1fr));
-        }
-        
-        .calendar-cell {
-            min-height: 60px;
-        }
-        
-        .calendar-header-cell {
-            padding: var(--design-unit-2) var(--design-unit-1);
-            min-height: 32px;
-        }
-
-        .day-events {
-            max-height: calc(100% - 25px); /* Less space for day number on mobile */
-        }
-
-        .income-schedule-card,
-        .expense-schedule-card,
-        .income-transaction-card,
-        .expense-transaction-card,
-        .more-items-indicator {
-            font-size: var(--type-ramp-minus-3-font-size) !important;
-            padding: var(--design-unit-1) !important;
-            min-height: 18px;
-        }
-
-        .income-schedule-amount-label,
-        .expense-schedule-amount-label,
-        .income-transaction-amount-label,
-        .expense-transaction-amount-label {
-            font-size: var(--type-ramp-minus-2-font-size) !important;
-            font-weight: 700 !important;
-        }
-    }
-</style>
-
 @code {
     private CalendarMonth currentMonth = new();
-    private readonly string[] weekDayHeaders = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-    
-    // Unified recurring schedules data
-    private List<RecurringScheduleItem> recurringSchedules = new();
-    private Dictionary<string, Dictionary<DateOnly, List<RecurringScheduleItem>>> recurringScheduleOccurrenceCache = new();
-    
-    // Unified adhoc transaction data
-    private List<AdhocTransactionItem> adhocTransactions = new();
-    private Dictionary<string, Dictionary<DateOnly, List<AdhocTransactionItem>>> adhocTransactionCache = new();
-    
     private string currentMonthKey = string.Empty;
 
     // Dialog state for editing calendar items
@@ -416,50 +85,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadRecurringSchedules();
-        LoadAdhocTransactions();
         await LoadCurrentMonth();
-    }
-
-    private async Task LoadRecurringSchedules()
-    {
-        try
-        {
-            var result = await Http.GetFromJsonAsync<PagedResult<RecurringScheduleItem>>("api/v1/recurring-schedules?page=1&pageSize=100");
-            if (result?.Items != null)
-            {
-                recurringSchedules = result.Items.ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading recurring schedules: {ex.Message}");
-        }
-    }
-
-    private void LoadAdhocTransactions()
-    {
-        try
-        {
-            // We'll load adhoc transactions for a broader range and cache them
-            // For now, just initialize the collection
-            adhocTransactions = new List<AdhocTransactionItem>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading adhoc transactions: {ex.Message}");
-        }
     }
 
     private async Task LoadCurrentMonth()
     {
         var now = DateTime.Now;
-        currentMonth = BuildCalendarMonth(now.Year, now.Month);
+        currentMonth = CalendarMonth.Build(now.Year, now.Month);
         currentMonthKey = $"{now.Year:D4}-{now.Month:D2}";
         
-        // Cache occurrences for current month
-        await CacheRecurringScheduleOccurrences(now.Year, now.Month);
-        await CacheAdhocTransactions(now.Year, now.Month);
+        await DataService.LoadRecurringSchedulesAsync();
+        await DataService.CacheRecurringScheduleOccurrencesAsync(now.Year, now.Month);
+        await DataService.CacheAdhocTransactionsAsync(now.Year, now.Month);
+        await DataService.CalculateRunningTotalsAsync(now.Year, now.Month);
         StateHasChanged();
     }
 
@@ -468,190 +106,23 @@
         var currentDate = new DateTime(currentMonth.Year, currentMonth.Month, 1);
         var newDate = currentDate.AddMonths(direction);
         
-        currentMonth = BuildCalendarMonth(newDate.Year, newDate.Month);
+        currentMonth = CalendarMonth.Build(newDate.Year, newDate.Month);
         currentMonthKey = $"{newDate.Year:D4}-{newDate.Month:D2}";
         
-        // Cache occurrences for new month
-        await CacheRecurringScheduleOccurrences(newDate.Year, newDate.Month);
-        await CacheAdhocTransactions(newDate.Year, newDate.Month);
+        await DataService.CacheRecurringScheduleOccurrencesAsync(newDate.Year, newDate.Month);
+        await DataService.CacheAdhocTransactionsAsync(newDate.Year, newDate.Month);
+        await DataService.CalculateRunningTotalsAsync(newDate.Year, newDate.Month);
         StateHasChanged();
-    }
-
-    private async Task CacheRecurringScheduleOccurrences(int year, int month)
-    {
-        var monthKey = $"{year:D4}-{month:D2}";
-        if (recurringScheduleOccurrenceCache.ContainsKey(monthKey)) return; // Already cached
-
-        // Adjust for invalid months
-        var adjustedDate = new DateTime(year, month, 1);
-        if (month < 1)
-        {
-            adjustedDate = new DateTime(year - 1, 12, 1);
-            monthKey = $"{year - 1:D4}-12";
-        }
-        else if (month > 12)
-        {
-            adjustedDate = new DateTime(year + 1, 1, 1);
-            monthKey = $"{year + 1:D4}-01";
-        }
-
-        var startDate = DateOnly.FromDateTime(adjustedDate);
-        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
-
-        var monthOccurrences = new Dictionary<DateOnly, List<RecurringScheduleItem>>();
-
-        foreach (var schedule in recurringSchedules)
-        {
-            try
-            {
-                var occurrences = await Http.GetFromJsonAsync<List<DateOnly>>($"api/v1/recurring-schedules/{schedule.Id}/occurrences?start={startDate:yyyy-MM-dd}&end={endDate:yyyy-MM-dd}");
-                if (occurrences != null)
-                {
-                    foreach (var occurrence in occurrences)
-                    {
-                        if (!monthOccurrences.ContainsKey(occurrence))
-                        {
-                            monthOccurrences[occurrence] = new List<RecurringScheduleItem>();
-                        }
-                        monthOccurrences[occurrence].Add(schedule);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading occurrences for recurring schedule {schedule.Id}: {ex.Message}");
-            }
-        }
-
-        recurringScheduleOccurrenceCache[monthKey] = monthOccurrences;
-    }
-
-    private async Task CacheAdhocTransactions(int year, int month)
-    {
-        var monthKey = $"{year:D4}-{month:D2}";
-        if (adhocTransactionCache.ContainsKey(monthKey)) return; // Already cached
-
-        // Adjust for invalid months
-        var adjustedDate = new DateTime(year, month, 1);
-        if (month < 1)
-        {
-            adjustedDate = new DateTime(year - 1, 12, 1);
-            monthKey = $"{year - 1:D4}-12";
-        }
-        else if (month > 12)
-        {
-            adjustedDate = new DateTime(year + 1, 1, 1);
-            monthKey = $"{year + 1:D4}-01";
-        }
-
-        var startDate = DateOnly.FromDateTime(adjustedDate);
-        var endDate = DateOnly.FromDateTime(adjustedDate.AddMonths(1).AddDays(-1));
-
-        var monthAdhocTransactions = new Dictionary<DateOnly, List<AdhocTransactionItem>>();
-
-        try
-        {
-            var transactions = await Http.GetFromJsonAsync<List<AdhocTransactionItem>>($"api/v1/adhoc-transactions/by-date-range?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
-            if (transactions != null)
-            {
-                foreach (var transaction in transactions)
-                {
-                    if (!monthAdhocTransactions.ContainsKey(transaction.Date))
-                    {
-                        monthAdhocTransactions[transaction.Date] = new List<AdhocTransactionItem>();
-                    }
-                    monthAdhocTransactions[transaction.Date].Add(transaction);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading adhoc transactions for {monthKey}: {ex.Message}");
-        }
-
-        adhocTransactionCache[monthKey] = monthAdhocTransactions;
     }
 
     private List<RecurringScheduleItem> GetRecurringSchedulesForDay(DateOnly day)
     {
-        if (!recurringScheduleOccurrenceCache.ContainsKey(currentMonthKey))
-            return new List<RecurringScheduleItem>();
-
-        var monthOccurrences = recurringScheduleOccurrenceCache[currentMonthKey];
-        return monthOccurrences.ContainsKey(day) ? monthOccurrences[day] : new List<RecurringScheduleItem>();
+        return DataService.GetRecurringSchedulesForDay(day, currentMonthKey);
     }
 
     private List<AdhocTransactionItem> GetAdhocTransactionsForDay(DateOnly day)
     {
-        if (!adhocTransactionCache.ContainsKey(currentMonthKey))
-            return new List<AdhocTransactionItem>();
-
-        var monthTransactions = adhocTransactionCache[currentMonthKey];
-        return monthTransactions.ContainsKey(day) ? monthTransactions[day] : new List<AdhocTransactionItem>();
-    }
-
-    private int GetTotalItemsForDay(DateOnly day)
-    {
-        var recurringCount = GetRecurringSchedulesForDay(day).Count;
-        var transactionCount = GetAdhocTransactionsForDay(day).Count;
-        return recurringCount + transactionCount;
-    }
-
-    private string GetScheduleCardClass(RecurringScheduleItem schedule)
-    {
-        return schedule.IsIncome ? "income-schedule-card" : "expense-schedule-card";
-    }
-
-    private string GetScheduleAmountLabelClass(RecurringScheduleItem schedule)
-    {
-        return schedule.IsIncome ? "income-schedule-amount-label" : "expense-schedule-amount-label";
-    }
-
-    private string GetTransactionCardClass(AdhocTransactionItem transaction)
-    {
-        return transaction.IsIncome ? "income-transaction-card" : "expense-transaction-card";
-    }
-
-    private string GetTransactionAmountLabelClass(AdhocTransactionItem transaction)
-    {
-        return transaction.IsIncome ? "income-transaction-amount-label" : "expense-transaction-amount-label";
-    }
-
-    private string GetScheduleTooltip(RecurringScheduleItem schedule)
-    {
-        var typeText = schedule.IsIncome ? "Income" : "Expense";
-        return $"{schedule.Recurrence} {typeText}: {schedule.DisplayName} - {schedule.Currency} ${schedule.DisplayAmount:N2} (Anchor: {schedule.Anchor:yyyy-MM-dd})";
-    }
-
-    private string GetTransactionTooltip(AdhocTransactionItem transaction)
-    {
-        var typeText = transaction.IsIncome ? "Income" : "Expense";
-        var categoryText = !string.IsNullOrEmpty(transaction.Category) ? $" ({transaction.Category})" : "";
-        return $"{typeText}: {transaction.Description}{categoryText} - {transaction.Currency} ${transaction.DisplayAmount:N2}";
-    }
-
-    private string GetDayCssClass(DateOnly day, bool isToday, bool isCurrentMonth, bool hasEvents)
-    {
-        var classes = new List<string> { "calendar-day" };
-        
-        if (isToday) 
-            classes.Add("today");
-        if (!isCurrentMonth) 
-            classes.Add("other-month");
-        if (hasEvents)
-            classes.Add("event-day");
-        
-        return string.Join(" ", classes);
-    }
-
-    private string GetDayNumberStyle(bool isToday, bool isCurrentMonth)
-    {
-        if (isToday)
-            return "color: var(--accent-foreground-rest); font-weight: bold;";
-        if (!isCurrentMonth)
-            return "color: var(--neutral-foreground-secondary);";
-        
-        return "color: var(--neutral-foreground-primary);";
+        return DataService.GetAdhocTransactionsForDay(day, currentMonthKey);
     }
 
     // Dialog methods for editing calendar items
@@ -663,7 +134,7 @@
             Id = schedule.Id,
             ScheduleType = schedule.ScheduleType,
             Name = schedule.Name ?? string.Empty,
-            Amount = schedule.DisplayAmount, // Always use positive for display/editing
+            Amount = schedule.DisplayAmount,
             DateTime = schedule.Anchor.ToDateTime(TimeOnly.MinValue),
             Recurrence = schedule.Recurrence,
             DaysInterval = schedule.DaysInterval,
@@ -680,7 +151,7 @@
             Id = transaction.Id,
             Name = transaction.Description,
             Currency = transaction.Currency,
-            Amount = transaction.DisplayAmount, // Always use positive for display/editing
+            Amount = transaction.DisplayAmount,
             DateTime = transaction.Date.ToDateTime(TimeOnly.MinValue),
             Category = transaction.Category,
             IsEditMode = true,
@@ -710,61 +181,21 @@
 
         try
         {
+            var success = false;
+            
             if (adhocTransactionDialogModel.IsEditMode && adhocTransactionDialogModel.Id.HasValue)
             {
-                // Update existing transaction
-                var updateRequest = new
-                {
-                    Description = adhocTransactionDialogModel.Name!.Trim(),
-                    Currency = adhocTransactionDialogModel.Currency,
-                    Amount = adhocTransactionDialogModel.Amount!.Value,
-                    Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
-                    Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
-                };
-
-                var response = await Http.PutAsJsonAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}", updateRequest);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    // Clear cache and reload current month
-                    adhocTransactionCache.Clear();
-                    await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
-                    CloseAdhocTransactionDialog();
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to update adhoc transaction: {response.StatusCode}");
-                }
+                success = await UpdateAdhocTransactionAsync();
             }
             else
             {
-                // Create new transaction
-                var createRequest = new
-                {
-                    Description = adhocTransactionDialogModel.Name!.Trim(),
-                    Currency = adhocTransactionDialogModel.Currency,
-                    Amount = adhocTransactionDialogModel.Amount!.Value,
-                    Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
-                    Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
-                };
+                success = await CreateAdhocTransactionAsync();
+            }
 
-                var endpoint = adhocTransactionDialogModel.TransactionType == TransactionType.Income 
-                    ? "api/v1/adhoc-transactions/income" 
-                    : "api/v1/adhoc-transactions/expenses";
-
-                var response = await Http.PostAsJsonAsync(endpoint, createRequest);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    // Clear cache and reload current month
-                    adhocTransactionCache.Clear();
-                    await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
-                    CloseAdhocTransactionDialog();
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to create adhoc transaction: {response.StatusCode}");
-                }
+            if (success)
+            {
+                await RefreshCalendarDataAsync();
+                CloseAdhocTransactionDialog();
             }
         }
         catch (Exception ex)
@@ -776,6 +207,57 @@
             adhocTransactionDialogModel.IsSaving = false;
             StateHasChanged();
         }
+    }
+
+    private async Task<bool> UpdateAdhocTransactionAsync()
+    {
+        if (!adhocTransactionDialogModel.Id.HasValue)
+        {
+            return false;
+        }
+
+        var updateRequest = new
+        {
+            Description = adhocTransactionDialogModel.Name!.Trim(),
+            Currency = adhocTransactionDialogModel.Currency,
+            Amount = adhocTransactionDialogModel.Amount!.Value,
+            Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
+            Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
+        };
+
+        var response = await DataService.HttpClient.PutAsJsonAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}", updateRequest);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to update adhoc transaction: {response.StatusCode}");
+        }
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    private async Task<bool> CreateAdhocTransactionAsync()
+    {
+        var createRequest = new
+        {
+            Description = adhocTransactionDialogModel.Name!.Trim(),
+            Currency = adhocTransactionDialogModel.Currency,
+            Amount = adhocTransactionDialogModel.Amount!.Value,
+            Date = DateOnly.FromDateTime(adhocTransactionDialogModel.DateTime),
+            Category = string.IsNullOrWhiteSpace(adhocTransactionDialogModel.Category) ? null : adhocTransactionDialogModel.Category.Trim()
+        };
+
+        var endpoint = adhocTransactionDialogModel.TransactionType == TransactionType.Income 
+            ? "api/v1/adhoc-transactions/income" 
+            : "api/v1/adhoc-transactions/expenses";
+
+        var response = await DataService.HttpClient.PostAsJsonAsync(endpoint, createRequest);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to create adhoc transaction: {response.StatusCode}");
+        }
+        
+        return response.IsSuccessStatusCode;
     }
     
     private async Task DeleteAdhocTransaction()
@@ -790,13 +272,11 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}");
+            var response = await DataService.HttpClient.DeleteAsync($"api/v1/adhoc-transactions/{adhocTransactionDialogModel.Id.Value}");
             
             if (response.IsSuccessStatusCode)
             {
-                // Clear cache and reload current month
-                adhocTransactionCache.Clear();
-                await CacheAdhocTransactions(currentMonth.Year, currentMonth.Month);
+                await RefreshCalendarDataAsync();
                 CloseAdhocTransactionDialog();
             }
             else
@@ -836,81 +316,20 @@
 
         try
         {
+            var success = false;
+            
             if (recurringScheduleDialogModel.IsEditMode && recurringScheduleDialogModel.Id.HasValue)
             {
-                // Update existing schedule
-                var updateRequest = new
-                {
-                    Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim(),
-                    Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                    Currency = recurringScheduleDialogModel.Currency,
-                    Amount = recurringScheduleDialogModel.Amount!.Value,
-                    Recurrence = recurringScheduleDialogModel.Recurrence,
-                    CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
-                };
-
-                var response = await Http.PutAsJsonAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}", updateRequest);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    // Clear cache and reload current month
-                    recurringScheduleOccurrenceCache.Clear();
-                    await LoadRecurringSchedules();
-                    await CacheRecurringScheduleOccurrences(currentMonth.Year, currentMonth.Month);
-                    CloseRecurringScheduleDialog();
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to update recurring schedule: {response.StatusCode}");
-                }
+                success = await UpdateRecurringScheduleAsync();
             }
             else
             {
-                // Create new schedule
-                if (recurringScheduleDialogModel.ScheduleType == Api.ScheduleType.Income)
-                {
-                    var createRequest = new
-                    {
-                        Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                        Currency = recurringScheduleDialogModel.Currency,
-                        Amount = recurringScheduleDialogModel.Amount!.Value,
-                        Recurrence = recurringScheduleDialogModel.Recurrence,
-                        CustomIntervalDays = recurringScheduleDialogModel.DaysInterval,
-                        Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim()
-                    };
+                success = await CreateRecurringScheduleAsync();
+            }
 
-                    var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/income", createRequest);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await RefreshSchedulesAndCloseDialog();
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Error creating income schedule: {response.StatusCode}");
-                    }
-                }
-                else
-                {
-                    var createRequest = new
-                    {
-                        Name = recurringScheduleDialogModel.Name!.Trim(),
-                        Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
-                        Currency = recurringScheduleDialogModel.Currency,
-                        Amount = recurringScheduleDialogModel.Amount!.Value,
-                        Recurrence = recurringScheduleDialogModel.Recurrence,
-                        CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
-                    };
-
-                    var response = await Http.PostAsJsonAsync("api/v1/recurring-schedules/expenses", createRequest);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await RefreshSchedulesAndCloseDialog();
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Error creating expense schedule: {response.StatusCode}");
-                    }
-                }
+            if (success)
+            {
+                await RefreshSchedulesAndCloseDialog();
             }
         }
         catch (Exception ex)
@@ -921,6 +340,79 @@
         {
             recurringScheduleDialogModel.IsSaving = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task<bool> UpdateRecurringScheduleAsync()
+    {
+        if (!recurringScheduleDialogModel.Id.HasValue)
+        {
+            return false;
+        }
+
+        var updateRequest = new
+        {
+            Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim(),
+            Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+            Currency = recurringScheduleDialogModel.Currency,
+            Amount = recurringScheduleDialogModel.Amount!.Value,
+            Recurrence = recurringScheduleDialogModel.Recurrence,
+            CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
+        };
+
+        var response = await DataService.HttpClient.PutAsJsonAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}", updateRequest);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Failed to update recurring schedule: {response.StatusCode}");
+        }
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    private async Task<bool> CreateRecurringScheduleAsync()
+    {
+        if (recurringScheduleDialogModel.ScheduleType == Api.ScheduleType.Income)
+        {
+            var createRequest = new
+            {
+                Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                Currency = recurringScheduleDialogModel.Currency,
+                Amount = recurringScheduleDialogModel.Amount!.Value,
+                Recurrence = recurringScheduleDialogModel.Recurrence,
+                CustomIntervalDays = recurringScheduleDialogModel.DaysInterval,
+                Name = string.IsNullOrWhiteSpace(recurringScheduleDialogModel.Name) ? null : recurringScheduleDialogModel.Name.Trim()
+            };
+
+            var response = await DataService.HttpClient.PostAsJsonAsync("api/v1/recurring-schedules/income", createRequest);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error creating income schedule: {response.StatusCode}");
+            }
+            
+            return response.IsSuccessStatusCode;
+        }
+        else
+        {
+            var createRequest = new
+            {
+                Name = recurringScheduleDialogModel.Name!.Trim(),
+                Anchor = DateOnly.FromDateTime(recurringScheduleDialogModel.DateTime),
+                Currency = recurringScheduleDialogModel.Currency,
+                Amount = recurringScheduleDialogModel.Amount!.Value,
+                Recurrence = recurringScheduleDialogModel.Recurrence,
+                CustomIntervalDays = recurringScheduleDialogModel.DaysInterval
+            };
+
+            var response = await DataService.HttpClient.PostAsJsonAsync("api/v1/recurring-schedules/expenses", createRequest);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error creating expense schedule: {response.StatusCode}");
+            }
+            
+            return response.IsSuccessStatusCode;
         }
     }
 
@@ -936,7 +428,7 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}");
+            var response = await DataService.HttpClient.DeleteAsync($"api/v1/recurring-schedules/{recurringScheduleDialogModel.Id.Value}");
             
             if (response.IsSuccessStatusCode)
             {
@@ -960,11 +452,29 @@
 
     private async Task RefreshSchedulesAndCloseDialog()
     {
-        // Clear cache and reload data
-        recurringScheduleOccurrenceCache.Clear();
-        await LoadRecurringSchedules();
-        await CacheRecurringScheduleOccurrences(currentMonth.Year, currentMonth.Month);
+        DataService.ClearCache();
+        await DataService.LoadRecurringSchedulesAsync();
+        await DataService.CacheRecurringScheduleOccurrencesAsync(currentMonth.Year, currentMonth.Month);
+        await DataService.CacheAdhocTransactionsAsync(currentMonth.Year, currentMonth.Month);
+        await DataService.CalculateRunningTotalsAsync(currentMonth.Year, currentMonth.Month);
         CloseRecurringScheduleDialog();
+        
+        // Force UI update
+        StateHasChanged();
+    }
+
+    private async Task RefreshCalendarDataAsync()
+    {
+        // Clear only the specific caches that need refreshing
+        DataService.ClearCacheForMonth(currentMonthKey);
+        
+        // Re-cache both recurring schedules AND adhoc transactions
+        await DataService.CacheRecurringScheduleOccurrencesAsync(currentMonth.Year, currentMonth.Month);
+        await DataService.CacheAdhocTransactionsAsync(currentMonth.Year, currentMonth.Month);
+        await DataService.CalculateRunningTotalsAsync(currentMonth.Year, currentMonth.Month);
+        
+        // Force UI update
+        StateHasChanged();
     }
 
     // Day details dialog methods
@@ -1058,77 +568,5 @@
     {
         CloseDayDetailsDialog();
         OpenAdhocTransactionDialog(transaction);
-    }
-
-    private CalendarMonth BuildCalendarMonth(int year, int month)
-    {
-        var firstDay = new DateTime(year, month, 1);
-        var daysInMonth = DateTime.DaysInMonth(year, month);
-        var startOfWeek = (int)firstDay.DayOfWeek; // Sunday = 0
-        var weeks = new List<List<DateOnly>>();
-        var currentWeek = new List<DateOnly>();
-        
-        // Add days from previous month to fill first week
-        var prevMonth = firstDay.AddMonths(-1);
-        var daysInPrevMonth = DateTime.DaysInMonth(prevMonth.Year, prevMonth.Month);
-        for (int i = startOfWeek - 1; i >= 0; i--)
-        {
-            currentWeek.Add(new DateOnly(prevMonth.Year, prevMonth.Month, daysInPrevMonth - i));
-        }
-        
-        // Add days of current month
-        for (int day = 1; day <= daysInMonth; day++)
-        {
-            currentWeek.Add(new DateOnly(year, month, day));
-            if (currentWeek.Count == 7)
-            {
-                weeks.Add(currentWeek);
-                currentWeek = new List<DateOnly>();
-            }
-        }
-        
-        // Fill remaining cells with next month days
-        if (currentWeek.Count > 0)
-        {
-            var nextMonth = firstDay.AddMonths(1);
-            int nextMonthDay = 1;
-            while (currentWeek.Count < 7)
-            {
-                currentWeek.Add(new DateOnly(nextMonth.Year, nextMonth.Month, nextMonthDay));
-                nextMonthDay++;
-            }
-            weeks.Add(currentWeek);
-        }
-        
-        // Ensure we have 6 rows for consistent layout
-        while (weeks.Count < 6)
-        {
-            var lastWeek = weeks[^1];
-            var lastDay = lastWeek[^1];
-            var newWeek = new List<DateOnly>();
-            
-            for (int i = 1; i <= 7; i++)
-            {
-                var nextDay = lastDay.AddDays(i);
-                newWeek.Add(nextDay);
-            }
-            weeks.Add(newWeek);
-        }
-        
-        return new CalendarMonth
-        {
-            Year = year,
-            Month = month,
-            MonthName = firstDay.ToString("MMMM"),
-            Weeks = weeks,
-        };
-    }
-
-    private sealed class CalendarMonth
-    {
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public string MonthName { get; set; } = string.Empty;
-        public List<List<DateOnly>> Weeks { get; set; } = new();
     }
 }

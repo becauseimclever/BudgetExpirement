@@ -19,12 +19,6 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     {
     }
 
-    /// <summary>Gets expenses set.</summary>
-    public DbSet<Expense> Expenses => this.Set<Expense>();
-
-    /// <summary>Gets adhoc payments set.</summary>
-    public DbSet<AdhocPayment> AdhocPayments => this.Set<AdhocPayment>();
-
     /// <summary>Gets unified adhoc transactions set.</summary>
     public DbSet<AdhocTransaction> AdhocTransactions => this.Set<AdhocTransaction>();
 
@@ -48,38 +42,6 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Expense>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Description).IsRequired().HasMaxLength(500);
-            e.OwnsOne(typeof(MoneyValue), "Amount", mv =>
-            {
-                mv.Property("Currency").HasColumnName("AmountCurrency").HasMaxLength(3).IsRequired();
-                mv.Property("Amount").HasColumnName("AmountValue").HasColumnType("numeric(18,2)").IsRequired();
-            });
-            e.Property(x => x.Date).HasConversion(new DateOnlyConverter()).IsRequired();
-            e.Property(x => x.Category).HasMaxLength(100);
-            e.Property(x => x.CreatedUtc).IsRequired();
-            e.Property(x => x.UpdatedUtc);
-            e.HasIndex(x => x.Date); // Index for date-based queries
-        });
-
-        modelBuilder.Entity<AdhocPayment>(a =>
-        {
-            a.HasKey(x => x.Id);
-            a.Property(x => x.Description).IsRequired().HasMaxLength(500);
-            a.OwnsOne(typeof(MoneyValue), "Money", mv =>
-            {
-                mv.Property("Currency").HasColumnName("MoneyCurrency").HasMaxLength(3).IsRequired();
-                mv.Property("Amount").HasColumnName("MoneyValue").HasColumnType("numeric(18,2)").IsRequired();
-            });
-            a.Property(x => x.Date).HasConversion(new DateOnlyConverter()).IsRequired();
-            a.Property(x => x.Category).HasMaxLength(100);
-            a.Property(x => x.CreatedUtc).IsRequired();
-            a.Property(x => x.UpdatedUtc);
-            a.HasIndex(x => x.Date); // Index for date-based queries
-        });
-
         // AdhocTransaction mapping (unified Expense and AdhocPayment replacement)
         modelBuilder.Entity<AdhocTransaction>(a =>
         {
@@ -126,15 +88,7 @@ public sealed class BudgetDbContext : DbContext, IUnitOfWork
         {
             if (entry.State == EntityState.Modified)
             {
-                if (entry.Entity is Expense expense)
-                {
-                    expense.MarkUpdated();
-                }
-                else if (entry.Entity is AdhocPayment adhocPayment)
-                {
-                    adhocPayment.MarkUpdated();
-                }
-                else if (entry.Entity is AdhocTransaction adhocTransaction)
+                if (entry.Entity is AdhocTransaction adhocTransaction)
                 {
                     adhocTransaction.MarkUpdated();
                 }

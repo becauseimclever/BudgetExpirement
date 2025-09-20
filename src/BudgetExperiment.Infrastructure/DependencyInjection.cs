@@ -27,14 +27,8 @@ public static class DependencyInjection
 
         services.AddDbContext<BudgetDbContext>(options => options.UseNpgsql(cs));
 
-        services.AddScoped<IExpenseReadRepository, ExpenseReadRepository>();
-        services.AddScoped<IExpenseWriteRepository, ExpenseWriteRepository>();
-        services.AddScoped<IAdhocPaymentReadRepository, AdhocPaymentReadRepository>();
-        services.AddScoped<IAdhocPaymentWriteRepository, AdhocPaymentWriteRepository>();
         services.AddScoped<IRecurringScheduleReadRepository, RecurringScheduleReadRepository>();
         services.AddScoped<IRecurringScheduleWriteRepository, RecurringScheduleWriteRepository>();
-
-        // Add new unified repositories
         services.AddScoped<IAdhocTransactionReadRepository, AdhocTransactionReadRepository>();
         services.AddScoped<IAdhocTransactionWriteRepository, AdhocTransactionWriteRepository>();
 
