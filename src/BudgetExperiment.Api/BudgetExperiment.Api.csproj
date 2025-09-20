@@ -7,6 +7,10 @@
     <UserSecretsId>465afe4b-be3b-4f3c-a2d9-e571a59386bb</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Version>0.1.0-preview</Version>
+  </PropertyGroup>
+
   <ItemGroup>
   <PackageReference Include="Scalar.AspNetCore" Version="2.8.3" />
   <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.1.25451.107" />
