@@ -33,12 +33,13 @@ else if (Transaction != null)
 }
 
 <style>
+    /* Use CSS variable fallbacks so badges display correctly even if theme vars are not defined */
     .income-schedule-card,
     .income-transaction-card {
-        background-color: var(--palette-green-background-1) !important;
-        color: var(--palette-green-foreground-1) !important;
-        border-color: var(--palette-green-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
+        background-color: var(--palette-green-background-1, rgba(46,125,50,0.10)) !important;
+        color: var(--palette-green-foreground-1, #2e7d32) !important;
+        border-color: var(--palette-green-border-1, rgba(46,125,50,0.25)) !important;
+        box-shadow: var(--elevation-shadow-tooltip, none) !important;
         min-width: auto !important;
         width: auto !important; /* Auto width instead of stretching */
         max-width: none !important;
@@ -55,10 +56,10 @@ else if (Transaction != null)
 
     .expense-schedule-card,
     .expense-transaction-card {
-        background-color: var(--palette-red-background-1) !important;
-        color: var(--palette-red-foreground-1) !important;
-        border-color: var(--palette-red-border-1) !important;
-        box-shadow: var(--elevation-shadow-tooltip) !important;
+        background-color: var(--palette-red-background-1, rgba(198,40,40,0.10)) !important;
+        color: var(--palette-red-foreground-1, #c62828) !important;
+        border-color: var(--palette-red-border-1, rgba(198,40,40,0.25)) !important;
+        box-shadow: var(--elevation-shadow-tooltip, none) !important;
         min-width: auto !important;
         width: auto !important; /* Auto width instead of stretching */
         max-width: none !important;
@@ -75,13 +76,13 @@ else if (Transaction != null)
 
     .income-schedule-amount-label,
     .income-transaction-amount-label {
-        color: var(--palette-green-foreground-1) !important;
+        color: var(--palette-green-foreground-1, #2e7d32) !important;
         font-weight: 700 !important;
     }
 
     .expense-schedule-amount-label,
     .expense-transaction-amount-label {
-        color: var(--palette-red-foreground-1) !important;
+        color: var(--palette-red-foreground-1, #c62828) !important;
         font-weight: 700 !important;
     }
 
