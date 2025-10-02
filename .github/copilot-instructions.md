@@ -3,7 +3,7 @@
 Authoritative guidance for GitHub Copilot and contributors. Keep this concise, up‑to‑date, and PR‑reviewed before changing architectural decisions.
 
 ## 1. Solution Purpose
-Budget Experiment: .NET 8 solution with a clean, test-first, modular architecture for a budgeting domain. Emphasis on maintainability, SOLID, Clean Code, and proper RESTful API design.
+Budget Experiment: .NET 10 solution with a clean, test-first, modular architecture for a budgeting domain. Emphasis on maintainability, SOLID, Clean Code, and proper RESTful API design.
 
 ## 2. High-Level Architecture (Clean / Onion Hybrid)
 Layers (outer → inner depends inward only):
@@ -28,7 +28,7 @@ Tests under `tests/` mirroring structure:
 - `BudgetExperiment.Client.Tests` (bUnit for component tests if needed)
 
 ## 4. Technology Stack
-- .NET 8
+- .NET 10
 - Blazor WebAssembly + FluentUI-Blazor (UI)
 - ASP.NET Core API
 - EF Core + Npgsql (PostgreSQL)
@@ -213,7 +213,7 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 ## 32. NuGet Package Management
 - Always add or update NuGet dependencies using the `dotnet` CLI, not by manually editing `.csproj` files.
 - Preferred pattern (explicit paths + version pin):
-    - `dotnet add c:\ws\BudgetExpirement\tests\BudgetExperiment.Api.Tests\BudgetExperiment.Api.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 8.0.8`
+    - `dotnet add c:\ws\BudgetExpirement\tests\BudgetExperiment.Api.Tests\BudgetExperiment.Api.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 10.0.0`
 - Do NOT hand-edit `<ItemGroup><PackageReference .../></ItemGroup>` blocks unless performing a mechanical conflict resolution that cannot be expressed via CLI (rare—document justification if needed).
 - When removing a package: `dotnet remove <csprojPath> package <PackageName>`.
 - Keep versions explicit (no floating ranges) to preserve reproducibility; update via intentional CLI commands.
