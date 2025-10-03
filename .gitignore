@@ -424,4 +424,9 @@ FodyWeavers.xsd
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
+# Docker & Environment Files
+.env
+.env.local
+.env.*.local
+
 # End of https://www.toptal.com/developers/gitignore/api/dotnetcore,visualstudio,visualstudiocode

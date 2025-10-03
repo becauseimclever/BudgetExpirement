@@ -1,0 +1,68 @@
+# Docker ignore file - exclude unnecessary files from build context
+
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+# Don't ignore ./publish/ as we copy it explicitly
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Test projects (not needed in production image)
+**/tests/
+**/*.Tests/
+
+# Deployment scripts
+deploy.ps1
+deploy.sh
+docker-compose.yml
+docker-compose.*.yml
+
+# Environment and secrets
+*.env
+*.local
+appsettings.Development.json
+*.pfx
+*.key
+
+# Logs
+logs/
+*.log
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# Misc
+LICENSE
+.editorconfig

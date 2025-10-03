@@ -1,0 +1,65 @@
+# Docker Compose configuration for BudgetExperiment
+# Designed for Raspberry Pi with external PostgreSQL database
+
+services:
+  budgetexperiment:
+    image: budgetexperiment:latest
+    container_name: budgetexperiment
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5099:8080"  # Map container port 8080 to host port 5099
+    environment:
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      
+      # Database connection (OVERRIDE THIS with your actual connection string)
+      # Option 1: Set via environment variable (recommended for security)
+      - ConnectionStrings__AppDb=${DB_CONNECTION_STRING}
+      
+      # Option 2: Or uncomment and set directly (less secure - not recommended)
+      # - ConnectionStrings__AppDb=Host=your-db-server;Port=5432;Database=budgetexperiment;Username=your-user;Password=your-password
+      
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft.AspNetCore=Warning
+      
+      # CORS (adjust as needed for production)
+      - AllowedHosts=*
+    
+    restart: unless-stopped
+    
+    # Health check (optional but recommended)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (adjust based on your Raspberry Pi model)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Network configuration
+    networks:
+      - budget-network
+
+networks:
+  budget-network:
+    driver: bridge
+
+# To use this configuration:
+# 1. Create a .env file with your DB connection string:
+#    echo 'DB_CONNECTION_STRING=Host=your-db-server;Port=5432;Database=budgetexperiment;Username=your-user;Password=your-password' > .env
+# 2. Build and start: docker-compose up -d
+# 3. View logs: docker-compose logs -f
+# 4. Stop: docker-compose down
