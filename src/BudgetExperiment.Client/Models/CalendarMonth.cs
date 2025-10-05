@@ -8,12 +8,18 @@ public sealed class CalendarMonth
     /// <summary>
     /// Gets or sets the year for this calendar month.
     /// </summary>
-    public int Year { get; set; }
+    public int Year
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Gets or sets the month number (1-12) for this calendar month.
     /// </summary>
-    public int Month { get; set; }
+    public int Month
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Gets or sets the display name of the month.

@@ -1,8 +1,8 @@
-namespace BudgetExperiment.Client.Services;
-
 using System.Net.Http.Json;
 
 using BudgetExperiment.Client.Api;
+
+namespace BudgetExperiment.Client.Services;
 
 /// <summary>
 /// Service for managing calendar data caching and calculations.

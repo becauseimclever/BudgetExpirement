@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Infrastructure.Data.Repositories;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Infrastructure.Data.Repositories;
 
 /// <summary>
 /// EF Core implementation of adhoc transaction write repository.

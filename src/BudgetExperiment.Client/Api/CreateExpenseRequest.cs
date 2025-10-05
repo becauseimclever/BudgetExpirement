@@ -1,7 +1,7 @@
+using System;
+
 namespace BudgetExperiment.Client.Api
 {
-    using System;
-
     /// <summary>
     /// Request to create a new expense.
     /// </summary>

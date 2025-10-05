@@ -1,7 +1,8 @@
-namespace BudgetExperiment.Infrastructure.Data.Repositories;
-
 using BudgetExperiment.Domain;
+
 using Microsoft.EntityFrameworkCore;
+
+namespace BudgetExperiment.Infrastructure.Data.Repositories;
 
 /// <summary>
 /// EF Core implementation of adhoc transaction read repository.

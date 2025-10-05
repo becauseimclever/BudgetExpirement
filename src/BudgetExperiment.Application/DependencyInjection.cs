@@ -1,10 +1,10 @@
-namespace BudgetExperiment.Application;
-
 using BudgetExperiment.Application.AdhocTransactions;
 using BudgetExperiment.Application.RecurringSchedules;
 using BudgetExperiment.Application.RunningTotals;
 
 using Microsoft.Extensions.DependencyInjection;
+
+namespace BudgetExperiment.Application;
 
 /// <summary>
 /// Application layer DI registration.

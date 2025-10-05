@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Application.Schedules;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Application.Schedules;
 
 /// <summary>
 /// Unified service interface for managing recurring schedules (pay schedules and bill schedules).

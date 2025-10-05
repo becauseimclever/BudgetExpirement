@@ -6,19 +6,34 @@ namespace BudgetExperiment.Domain;
 public interface ISchedule
 {
     /// <summary>Gets the unique identifier.</summary>
-    Guid Id { get; }
+    Guid Id
+    {
+        get;
+    }
 
     /// <summary>Gets the anchor date (first occurrence).</summary>
-    DateOnly Anchor { get; }
+    DateOnly Anchor
+    {
+        get;
+    }
 
     /// <summary>Gets the amount associated with this schedule.</summary>
-    MoneyValue Amount { get; }
+    MoneyValue Amount
+    {
+        get;
+    }
 
     /// <summary>Gets the UTC creation timestamp.</summary>
-    DateTime CreatedUtc { get; }
+    DateTime CreatedUtc
+    {
+        get;
+    }
 
     /// <summary>Gets the UTC last update timestamp, null if never updated.</summary>
-    DateTime? UpdatedUtc { get; }
+    DateTime? UpdatedUtc
+    {
+        get;
+    }
 
     /// <summary>Generate occurrence dates within the given range.</summary>
     /// <param name="start">Start date (inclusive).</param>

@@ -1,5 +1,3 @@
-namespace BudgetExperiment.Infrastructure;
-
 using BudgetExperiment.Domain;
 using BudgetExperiment.Infrastructure.Data.Repositories;
 using BudgetExperiment.Infrastructure.Repositories;
@@ -7,6 +5,8 @@ using BudgetExperiment.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace BudgetExperiment.Infrastructure;
 
 /// <summary>
 /// DI extensions for infrastructure layer.

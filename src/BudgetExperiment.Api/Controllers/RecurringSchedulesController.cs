@@ -1,11 +1,11 @@
-namespace BudgetExperiment.Api.Controllers;
-
 using BudgetExperiment.Api.Dtos;
 using BudgetExperiment.Application.RecurringSchedules;
 using BudgetExperiment.Domain;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+
+namespace BudgetExperiment.Api.Controllers;
 
 /// <summary>Recurring schedules API - unified income and expense schedules.</summary>
 [ApiController]

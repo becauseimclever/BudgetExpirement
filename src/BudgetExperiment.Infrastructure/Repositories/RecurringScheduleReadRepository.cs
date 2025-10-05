@@ -1,8 +1,8 @@
-namespace BudgetExperiment.Infrastructure.Repositories;
-
 using BudgetExperiment.Domain;
 
 using Microsoft.EntityFrameworkCore;
+
+namespace BudgetExperiment.Infrastructure.Repositories;
 
 /// <summary>
 /// EF Core read repository for RecurringSchedule aggregate.

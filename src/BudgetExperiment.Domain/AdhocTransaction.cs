@@ -71,43 +71,67 @@ public sealed class AdhocTransaction
     /// <summary>
     /// Gets the unique identifier.
     /// </summary>
-    public Guid Id { get; private set; }
+    public Guid Id
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets the description of the transaction.
     /// </summary>
-    public string Description { get; private set; }
+    public string Description
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets the money value.
     /// Convention: Positive for income, negative for expenses.
     /// </summary>
-    public MoneyValue Money { get; private set; }
+    public MoneyValue Money
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets the date of the transaction.
     /// </summary>
-    public DateOnly Date { get; private set; }
+    public DateOnly Date
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets the optional category.
     /// </summary>
-    public string? Category { get; private set; }
+    public string? Category
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets the transaction type for categorization.
     /// </summary>
-    public TransactionType TransactionType { get; private set; }
+    public TransactionType TransactionType
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets when this record was created in UTC.
     /// </summary>
-    public DateTime CreatedUtc { get; private set; }
+    public DateTime CreatedUtc
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets when this record was last updated in UTC.
     /// </summary>
-    public DateTime? UpdatedUtc { get; private set; }
+    public DateTime? UpdatedUtc
+    {
+        get; private set;
+    }
 
     /// <summary>
     /// Gets a value indicating whether this is an income transaction.

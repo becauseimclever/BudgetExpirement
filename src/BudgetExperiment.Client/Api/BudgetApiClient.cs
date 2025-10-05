@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Client.Api;
-
 using System.Net.Http.Json;
+
+namespace BudgetExperiment.Client.Api;
 
 /// <summary>Concrete implementation of <see cref="IBudgetApiClient"/>.</summary>
 public sealed class BudgetApiClient : IBudgetApiClient

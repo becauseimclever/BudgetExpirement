@@ -1,9 +1,9 @@
-namespace BudgetExperiment.Infrastructure;
-
 using BudgetExperiment.Domain;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+
+namespace BudgetExperiment.Infrastructure;
 
 /// <summary>
 /// EF Core DbContext for budgeting aggregates.

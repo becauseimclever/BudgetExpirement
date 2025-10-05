@@ -2,6 +2,7 @@
 using BudgetExperiment.Client;
 using BudgetExperiment.Client.Api;
 using BudgetExperiment.Client.Services;
+
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;

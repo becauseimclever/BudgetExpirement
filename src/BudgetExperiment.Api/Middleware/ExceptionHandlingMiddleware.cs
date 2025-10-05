@@ -1,5 +1,3 @@
-namespace BudgetExperiment.Api.Middleware;
-
 using System.Net;
 using System.Text.Json;
 
@@ -7,6 +5,8 @@ using BudgetExperiment.Domain;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+
+namespace BudgetExperiment.Api.Middleware;
 
 /// <summary>Converts exceptions to RFC 7807 problem details responses.</summary>
 public sealed class ExceptionHandlingMiddleware

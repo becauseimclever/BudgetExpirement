@@ -1,7 +1,6 @@
-namespace BudgetExperiment.Application.AdhocTransactions;
-
 using BudgetExperiment.Domain;
 
+namespace BudgetExperiment.Application.AdhocTransactions;
 /// <summary>
 /// Response DTO for adhoc transactions.
 /// </summary>

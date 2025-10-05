@@ -1,5 +1,3 @@
-namespace BudgetExperiment.Api.Tests;
-
 using BudgetExperiment.Api;
 using BudgetExperiment.Infrastructure;
 
@@ -7,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace BudgetExperiment.Api.Tests;
 
 /// <summary>
 /// Custom factory for API integration tests using the configured database infrastructure.

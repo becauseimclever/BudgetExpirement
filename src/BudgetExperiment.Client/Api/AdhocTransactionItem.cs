@@ -1,7 +1,6 @@
-namespace BudgetExperiment.Client.Api;
-
 using TransactionType = BudgetExperiment.Domain.TransactionType;
 
+namespace BudgetExperiment.Client.Api;
 /// <summary>
 /// Unified adhoc transaction data from API (replaces ExpenseItem and AdhocPaymentItem).
 /// </summary>

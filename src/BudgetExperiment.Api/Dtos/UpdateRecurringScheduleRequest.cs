@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Api.Dtos;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Api.Dtos;
 
 /// <summary>Request to update a recurring schedule.</summary>
 public sealed class UpdateRecurringScheduleRequest

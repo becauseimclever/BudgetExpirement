@@ -1,9 +1,9 @@
-namespace BudgetExperiment.Api.Controllers;
-
 using BudgetExperiment.Application.RunningTotals;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+
+namespace BudgetExperiment.Api.Controllers;
 
 /// <summary>Running totals API controller.</summary>
 [ApiController]

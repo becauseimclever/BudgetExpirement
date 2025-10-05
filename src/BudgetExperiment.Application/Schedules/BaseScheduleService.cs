@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Application.Schedules;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Application.Schedules;
 
 /// <summary>
 /// Base implementation for schedule services providing common functionality.

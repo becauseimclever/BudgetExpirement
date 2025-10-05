@@ -1,7 +1,6 @@
-namespace BudgetExperiment.Application.RecurringSchedules;
-
 using BudgetExperiment.Domain;
 
+namespace BudgetExperiment.Application.RecurringSchedules;
 /// <summary>
 /// Data transfer object for recurring schedule details.
 /// Unified DTO that replaces both PayScheduleDto and BillScheduleDto.

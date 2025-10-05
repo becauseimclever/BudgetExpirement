@@ -1,8 +1,8 @@
-namespace BudgetExperiment.Application.RunningTotals;
-
 using BudgetExperiment.Application.AdhocTransactions;
 using BudgetExperiment.Application.RecurringSchedules;
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Application.RunningTotals;
 
 /// <summary>
 /// Service for calculating running totals with carryover from previous months.

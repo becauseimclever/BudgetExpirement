@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Domain.Tests;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Domain.Tests;
 
 public class MoneyValueTests
 {

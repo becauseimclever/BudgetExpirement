@@ -1,9 +1,9 @@
-namespace BudgetExperiment.Infrastructure;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
+
+namespace BudgetExperiment.Infrastructure;
 
 /// <summary>
 /// Design-time factory so dotnet-ef can create the DbContext for migrations.

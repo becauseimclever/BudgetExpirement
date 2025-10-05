@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Application.AdhocTransactions;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Application.AdhocTransactions;
 
 /// <summary>
 /// Application service interface for managing adhoc transactions (both income and expenses).

@@ -1,6 +1,6 @@
-namespace BudgetExperiment.Application.RecurringSchedules;
-
 using BudgetExperiment.Domain;
+
+namespace BudgetExperiment.Application.RecurringSchedules;
 
 /// <summary>
 /// Application service for managing recurring schedules (both income and expenses).
