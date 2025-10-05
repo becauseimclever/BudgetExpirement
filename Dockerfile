@@ -22,17 +22,11 @@ RUN dotnet restore "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj"
 # Copy all source code
 COPY ["src/", "src/"]
 
-# Build
-RUN dotnet build "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj" \
-    -c ${BUILD_CONFIGURATION} \
-    -o /app/build \
-    --no-restore
-
-# Publish
+# Publish (combines build and publish in one step to avoid path issues)
 RUN dotnet publish "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj" \
     -c ${BUILD_CONFIGURATION} \
     -o /app/publish \
-    --no-build \
+    --no-restore \
     /p:UseAppHost=false
 
 # Runtime stage
