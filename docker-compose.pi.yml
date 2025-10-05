@@ -1,0 +1,62 @@
+# Docker Compose configuration for Raspberry Pi deployment
+# Pulls pre-built multi-architecture images from GitHub Container Registry
+# 
+# Prerequisites:
+# 1. Create a GitHub Personal Access Token (classic) with read:packages scope
+# 2. Log in to ghcr.io: docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_GITHUB_TOKEN
+# 3. Create a .env file with your database connection string
+#
+# Usage:
+#   docker-compose -f docker-compose.pi.yml up -d
+#
+# Example .env file:
+#   DB_CONNECTION_STRING=Host=your-db-server;Port=5432;Database=budgetexperiment;Username=your-user;Password=your-password
+
+services:
+  budgetexperiment:
+    image: ghcr.io/fortinbra/budgetexpirement:latest
+    container_name: budgetexperiment
+    ports:
+      - "5099:8080"
+    environment:
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      
+      # Database connection (from .env file or Docker secrets)
+      - ConnectionStrings__AppDb=${DB_CONNECTION_STRING}
+      
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft.AspNetCore=Warning
+      
+      # CORS (adjust as needed for production)
+      - AllowedHosts=*
+    
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (adjust based on your Raspberry Pi model)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Network configuration
+    networks:
+      - budget-network
+
+networks:
+  budget-network:
+    driver: bridge

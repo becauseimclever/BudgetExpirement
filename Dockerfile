@@ -1,20 +1,51 @@
-# Simple runtime-only Dockerfile for BudgetExperiment
-# Expects the app to be pre-built and published locally to ./publish/
-# Optimized for ARM64 (Raspberry Pi) with external PostgreSQL database
+# Multi-stage Dockerfile for BudgetExperiment
+# Builds from source and creates optimized runtime image
+# Supports multi-architecture builds (amd64, arm64)
 
-# Use .NET 10 preview runtime to match the application
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+# Copy solution and project files
+COPY ["BudgetExperiment.sln", "./"]
+COPY ["Directory.Build.props", "./"]
+COPY ["stylecop.json", "./"]
+COPY ["src/BudgetExperiment.Domain/BudgetExperiment.Domain.csproj", "src/BudgetExperiment.Domain/"]
+COPY ["src/BudgetExperiment.Application/BudgetExperiment.Application.csproj", "src/BudgetExperiment.Application/"]
+COPY ["src/BudgetExperiment.Infrastructure/BudgetExperiment.Infrastructure.csproj", "src/BudgetExperiment.Infrastructure/"]
+COPY ["src/BudgetExperiment.Api/BudgetExperiment.Api.csproj", "src/BudgetExperiment.Api/"]
+COPY ["src/BudgetExperiment.Client/BudgetExperiment.Client.csproj", "src/BudgetExperiment.Client/"]
+
+# Restore dependencies
+RUN dotnet restore "BudgetExperiment.sln"
+
+# Copy all source code
+COPY . .
+
+# Build and publish
+WORKDIR "/src/src/BudgetExperiment.Api"
+RUN dotnet build "BudgetExperiment.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+
+# Publish
+RUN dotnet publish "BudgetExperiment.Api.csproj" \
+    -c ${BUILD_CONFIGURATION} \
+    -o /app/publish \
+    /p:UseAppHost=false
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Install necessary dependencies 
+# Install necessary dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pre-built application (expects ./publish/ directory exists locally)
-COPY ./publish/ .
+# Copy published application
+COPY --from=build /app/publish .
 
 # Create a non-root user for security
 RUN useradd -m -u 1000 appuser && \

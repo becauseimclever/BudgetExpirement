@@ -100,6 +100,21 @@ Run all tests:
 dotnet test
 ```
 
+## 🐳 Docker Deployment
+
+### Deploy to Raspberry Pi from Windows
+
+For deploying to a Raspberry Pi, see the **[Quick Start Guide](DEPLOY-QUICKSTART.md)**.
+
+**TL;DR:**
+```powershell
+# One command to build, transfer, and deploy to Raspberry Pi
+.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
+```
+
+For detailed Docker documentation, see **[README.Docker.md](README.Docker.md)**.
+
+
 Run tests for a specific project:
 ```powershell
 dotnet test tests\BudgetExperiment.Domain.Tests\BudgetExperiment.Domain.Tests.csproj

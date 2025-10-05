@@ -226,3 +226,15 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 - For development, only one terminal is needed:
   - Terminal: API server (usually http://localhost:5099) - this serves both API and client
 - When testing or debugging client features, ensure only the API is running - the client will be automatically served by the API.
+
+## 34. Docker & Deployment (CI/CD Only)
+- **Local Development**: NEVER use Docker locally. Use standard `dotnet run` workflow (see section 33).
+- **Docker is for deployment only**: Raspberry Pi and production servers pull pre-built images.
+- **CI/CD Pipeline**: GitHub Actions (`.github/workflows/docker-build-publish.yml`) automatically builds multi-architecture (amd64, arm64) Docker images on push to `main` or version tags.
+- **Image Registry**: Images published to `ghcr.io/fortinbra/budgetexpirement` (GitHub Container Registry).
+- **Dockerfile**: Multi-stage build (`Dockerfile`) - builds from source, no pre-build required.
+- **Deployment**: Raspberry Pi uses `docker-compose.pi.yml` to pull and run images from ghcr.io.
+- **Database Connection**: Passed via environment variable `ConnectionStrings__AppDb` from `.env` file (never committed).
+- **Legacy Scripts**: Local build scripts (`build-docker-windows.ps1`, `deploy-to-pi.ps1`, etc.) moved to `legacy-scripts/` and deprecated.
+- **Documentation**: See `README.Docker.md` for deployment guide, `DEPLOY-QUICKSTART.md` for quick Pi setup.
+- **Important**: Do NOT create or suggest local Docker build workflows. Direct users to CI/CD pipeline or standard .NET local development.

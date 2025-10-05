@@ -429,4 +429,9 @@ FodyWeavers.xsd
 .env.local
 .env.*.local
 
+# Docker build artifacts (no longer needed - CI builds in GitHub Actions)
+publish/
+*.tar
+budgetexperiment-image.tar
+
 # End of https://www.toptal.com/developers/gitignore/api/dotnetcore,visualstudio,visualstudiocode
