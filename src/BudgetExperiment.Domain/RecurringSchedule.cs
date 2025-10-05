@@ -30,24 +30,28 @@ public sealed class RecurringSchedule : ISchedule
     }
 
     /// <summary>Gets the unique identifier.</summary>
+    /// <value>The unique identifier for this schedule.</value>
     public Guid Id
     {
         get; private set;
     }
 
     /// <summary>Gets the schedule name (optional, primarily used for expense schedules).</summary>
+    /// <value>The schedule name, or empty string if not specified.</value>
     public string Name
     {
         get; private set;
     }
 
     /// <summary>Gets the anchor date (first occurrence).</summary>
+    /// <value>The anchor date representing the first occurrence of this schedule.</value>
     public DateOnly Anchor
     {
         get; private set;
     }
 
     /// <summary>Gets the recurrence pattern.</summary>
+    /// <value>The recurrence pattern (Weekly, BiWeekly, Monthly, or Custom).</value>
     public RecurrencePattern Recurrence
     {
         get; private set;
@@ -57,6 +61,7 @@ public sealed class RecurringSchedule : ISchedule
     /// Gets the schedule amount.
     /// Convention: Positive for income, negative for expenses.
     /// </summary>
+    /// <value>The monetary amount (positive for income, negative for expenses).</value>
     public MoneyValue Amount
     {
         get; private set;

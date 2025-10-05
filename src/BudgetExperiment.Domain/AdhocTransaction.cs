@@ -132,6 +132,7 @@ public sealed class AdhocTransaction
     /// <summary>
     /// Gets the formatted amount with prefix for display.
     /// </summary>
+    /// <value>The formatted amount string with prefix (e.g., "+$1,000" or "-$500").</value>
     public string FormattedAmount => $"{this.AmountPrefix}${this.DisplayAmount:N0}";
 
     /// <summary>
