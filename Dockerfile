@@ -5,9 +5,9 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /build
 
-# Copy only source project files (not solution, to avoid test project dependencies)
+# Copy project files for restore
 COPY ["Directory.Build.props", "./"]
 COPY ["stylecop.json", "./"]
 COPY ["src/BudgetExperiment.Domain/BudgetExperiment.Domain.csproj", "src/BudgetExperiment.Domain/"]
@@ -16,20 +16,23 @@ COPY ["src/BudgetExperiment.Infrastructure/BudgetExperiment.Infrastructure.cspro
 COPY ["src/BudgetExperiment.Api/BudgetExperiment.Api.csproj", "src/BudgetExperiment.Api/"]
 COPY ["src/BudgetExperiment.Client/BudgetExperiment.Client.csproj", "src/BudgetExperiment.Client/"]
 
-# Restore dependencies for API project (includes all dependencies)
+# Restore dependencies
 RUN dotnet restore "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj"
 
 # Copy all source code
-COPY . .
+COPY ["src/", "src/"]
 
-# Build and publish
-WORKDIR "/src/src/BudgetExperiment.Api"
-RUN dotnet build "BudgetExperiment.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+# Build
+RUN dotnet build "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj" \
+    -c ${BUILD_CONFIGURATION} \
+    -o /app/build \
+    --no-restore
 
 # Publish
-RUN dotnet publish "BudgetExperiment.Api.csproj" \
+RUN dotnet publish "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj" \
     -c ${BUILD_CONFIGURATION} \
     -o /app/publish \
+    --no-build \
     /p:UseAppHost=false
 
 # Runtime stage
