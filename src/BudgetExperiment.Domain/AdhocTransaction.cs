@@ -120,6 +120,7 @@ public sealed class AdhocTransaction
     /// <summary>
     /// Gets when this record was created in UTC.
     /// </summary>
+    /// <value>The UTC timestamp when this transaction was created.</value>
     public DateTime CreatedUtc
     {
         get; private set;
@@ -128,6 +129,7 @@ public sealed class AdhocTransaction
     /// <summary>
     /// Gets when this record was last updated in UTC.
     /// </summary>
+    /// <value>The UTC timestamp when this transaction was last updated, or null if never updated.</value>
     public DateTime? UpdatedUtc
     {
         get; private set;
@@ -136,21 +138,25 @@ public sealed class AdhocTransaction
     /// <summary>
     /// Gets a value indicating whether this is an income transaction.
     /// </summary>
+    /// <value>True if this is an income transaction; otherwise, false.</value>
     public bool IsIncome => this.TransactionType == TransactionType.Income;
 
     /// <summary>
     /// Gets a value indicating whether this is an expense transaction.
     /// </summary>
+    /// <value>True if this is an expense transaction; otherwise, false.</value>
     public bool IsExpense => this.TransactionType == TransactionType.Expense;
 
     /// <summary>
     /// Gets the display amount (always positive for display purposes).
     /// </summary>
+    /// <value>The absolute value of the transaction amount.</value>
     public decimal DisplayAmount => Math.Abs(this.Money.Amount);
 
     /// <summary>
     /// Gets the amount prefix for display (+ for income, - for expenses).
     /// </summary>
+    /// <value>The prefix string ("+" for income, "-" for expenses).</value>
     public string AmountPrefix => this.IsIncome ? "+" : "-";
 
     /// <summary>
