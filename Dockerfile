@@ -43,8 +43,8 @@ RUN apt-get update && \
 # Copy published application
 COPY --from=build /app/publish .
 
-# Create a non-root user for security
-RUN useradd -m -u 1000 appuser && \
+# Create a non-root user for security (use UID 1001 to avoid conflicts)
+RUN useradd -m -u 1001 appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
