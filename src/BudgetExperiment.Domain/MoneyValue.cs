@@ -16,9 +16,11 @@ public sealed record MoneyValue
     }
 
     /// <summary>Gets currency code (ISO upper case).</summary>
+    /// <value>The ISO currency code in uppercase.</value>
     public string Currency { get; init; } = string.Empty;
 
     /// <summary>Gets monetary amount (scaled 2 decimals).</summary>
+    /// <value>The monetary amount rounded to 2 decimal places.</value>
     public decimal Amount
     {
         get; init;

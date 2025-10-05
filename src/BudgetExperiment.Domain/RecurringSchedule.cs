@@ -63,24 +63,28 @@ public sealed class RecurringSchedule : ISchedule
     }
 
     /// <summary>Gets the schedule type for categorization.</summary>
+    /// <value>The schedule type (Income or Expense).</value>
     public ScheduleType ScheduleType
     {
         get; private set;
     }
 
     /// <summary>Gets custom days interval for recurrence (only when Recurrence == Custom).</summary>
+    /// <value>Custom days interval for recurrence, or null for non-custom patterns.</value>
     public int? DaysInterval
     {
         get; private set;
     }
 
     /// <summary>Gets the UTC creation timestamp.</summary>
+    /// <value>The UTC creation timestamp.</value>
     public DateTime CreatedUtc
     {
         get; private set;
     }
 
     /// <summary>Gets the UTC last update timestamp, null if never updated.</summary>
+    /// <value>The UTC last update timestamp, or null if never updated.</value>
     public DateTime? UpdatedUtc
     {
         get; private set;
