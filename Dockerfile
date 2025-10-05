@@ -7,27 +7,17 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy solution and project files
-COPY ["BudgetExperiment.sln", "./"]
+# Copy only source project files (not solution, to avoid test project dependencies)
 COPY ["Directory.Build.props", "./"]
 COPY ["stylecop.json", "./"]
-
-# Copy source project files
 COPY ["src/BudgetExperiment.Domain/BudgetExperiment.Domain.csproj", "src/BudgetExperiment.Domain/"]
 COPY ["src/BudgetExperiment.Application/BudgetExperiment.Application.csproj", "src/BudgetExperiment.Application/"]
 COPY ["src/BudgetExperiment.Infrastructure/BudgetExperiment.Infrastructure.csproj", "src/BudgetExperiment.Infrastructure/"]
 COPY ["src/BudgetExperiment.Api/BudgetExperiment.Api.csproj", "src/BudgetExperiment.Api/"]
 COPY ["src/BudgetExperiment.Client/BudgetExperiment.Client.csproj", "src/BudgetExperiment.Client/"]
 
-# Copy test project files (required by solution)
-COPY ["tests/BudgetExperiment.Domain.Tests/BudgetExperiment.Domain.Tests.csproj", "tests/BudgetExperiment.Domain.Tests/"]
-COPY ["tests/BudgetExperiment.Application.Tests/BudgetExperiment.Application.Tests.csproj", "tests/BudgetExperiment.Application.Tests/"]
-COPY ["tests/BudgetExperiment.Infrastructure.Tests/BudgetExperiment.Infrastructure.Tests.csproj", "tests/BudgetExperiment.Infrastructure.Tests/"]
-COPY ["tests/BudgetExperiment.Api.Tests/BudgetExperiment.Api.Tests.csproj", "tests/BudgetExperiment.Api.Tests/"]
-COPY ["tests/BudgetExperiment.Client.Tests/BudgetExperiment.Client.Tests.csproj", "tests/BudgetExperiment.Client.Tests/"]
-
-# Restore dependencies
-RUN dotnet restore "BudgetExperiment.sln"
+# Restore dependencies for API project (includes all dependencies)
+RUN dotnet restore "src/BudgetExperiment.Api/BudgetExperiment.Api.csproj"
 
 # Copy all source code
 COPY . .
