@@ -206,14 +206,14 @@ Refactor safely behind tests. Each new concept: add a unit test first.
 Keep this file lean—prune when obsolete. Update when architectural decisions shift.
 
 ## 31. Shell / Scripting Guidelines
-- PowerShell commands must use fully qualified paths (no reliance on `~`, `$HOME`, or implicit working directory). Example: `dotnet sln c:\ws\BudgetExpirement\BudgetExperiment.sln add c:\ws\BudgetExpirement\src\BudgetExperiment.Domain\BudgetExperiment.Domain.csproj`.
+- PowerShell commands must use fully qualified paths (no reliance on `~`, `$HOME`, or implicit working directory). Example: `dotnet sln c:\ws\BudgetExperiment\BudgetExperiment.sln add c:\ws\BudgetExperiment\src\BudgetExperiment.Domain\BudgetExperiment.Domain.csproj`.
 - Avoid stateful assumptions about current directory; each command should be executable in isolation.
 - Prefer explicit paths when creating, editing, or referencing solution/project files to ensure reproducibility across developer environments.
 
 ## 32. NuGet Package Management
 - Always add or update NuGet dependencies using the `dotnet` CLI, not by manually editing `.csproj` files.
 - Preferred pattern (explicit paths + version pin):
-    - `dotnet add c:\ws\BudgetExpirement\tests\BudgetExperiment.Api.Tests\BudgetExperiment.Api.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 10.0.0`
+    - `dotnet add c:\ws\BudgetExperiment\tests\BudgetExperiment.Api.Tests\BudgetExperiment.Api.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 10.0.0`
 - Do NOT hand-edit `<ItemGroup><PackageReference .../></ItemGroup>` blocks unless performing a mechanical conflict resolution that cannot be expressed via CLI (rare—document justification if needed).
 - When removing a package: `dotnet remove <csprojPath> package <PackageName>`.
 - Keep versions explicit (no floating ranges) to preserve reproducibility; update via intentional CLI commands.
@@ -231,7 +231,7 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 - **Local Development**: NEVER use Docker locally. Use standard `dotnet run` workflow (see section 33).
 - **Docker is for deployment only**: Raspberry Pi and production servers pull pre-built images.
 - **CI/CD Pipeline**: GitHub Actions (`.github/workflows/docker-build-publish.yml`) automatically builds multi-architecture (amd64, arm64) Docker images on push to `main` or version tags.
-- **Image Registry**: Images published to `ghcr.io/fortinbra/budgetexpirement` (GitHub Container Registry).
+- **Image Registry**: Images published to `ghcr.io/becauseimclever/budgetexperiment` (GitHub Container Registry).
 - **Dockerfile**: Multi-stage build (`Dockerfile`) - builds from source, no pre-build required.
 - **Deployment**: Raspberry Pi uses `docker-compose.pi.yml` to pull and run images from ghcr.io.
 - **Database Connection**: Passed via environment variable `ConnectionStrings__AppDb` from `.env` file (never committed).

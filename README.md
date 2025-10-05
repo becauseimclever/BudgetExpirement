@@ -62,7 +62,7 @@ Built using **Clean Architecture** principles with strict layer separation:
 ### 1. Clone the repository
 
 ```powershell
-git clone https://github.com/Fortinbra/BudgetExpirement.git
+git clone https://github.com/becauseimclever/BudgetExperiment.git
 cd BudgetExpirement
 ```
 
@@ -193,7 +193,7 @@ See [LICENSE](LICENSE) file for details.
 
 ## 📧 Contact
 
-Repository: [https://github.com/Fortinbra/BudgetExpirement](https://github.com/Fortinbra/BudgetExpirement)
+Repository: [https://github.com/becauseimclever/BudgetExperiment](https://github.com/becauseimclever/BudgetExperiment)
 
 ---
 

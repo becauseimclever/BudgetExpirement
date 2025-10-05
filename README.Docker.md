@@ -64,7 +64,7 @@ The GitHub Actions workflow (`.github/workflows/docker-build-publish.yml`) autom
 
 
 
-Images are published to: `ghcr.io/fortinbra/budgetexpirement:latest`This method builds the Docker image on your Windows machine and transfers it to the Raspberry Pi. This is faster and avoids taxing the Pi's limited resources.
+Images are published to: `ghcr.io/becauseimclever/budgetexperiment:latest`
 
 
 
@@ -202,13 +202,13 @@ Download `docker-compose.pi.yml` from the repository:
 
 # Option 1: Using wget
 
-wget https://raw.githubusercontent.com/Fortinbra/BudgetExpirement/main/docker-compose.pi.yml# Step 3: Transfer to Pi
+wget https://raw.githubusercontent.com/becauseimclever/BudgetExperiment/main/docker-compose.pi.yml
 
 scp budgetexperiment-image.tar pi@raspberry-pi.local:/home/pi/BudgetExperiment/
 
 # Option 2: Using curlscp docker-compose.yml pi@raspberry-pi.local:/home/pi/BudgetExperiment/
 
-curl -O https://raw.githubusercontent.com/Fortinbra/BudgetExpirement/main/docker-compose.pi.ymlscp load-and-deploy.sh pi@raspberry-pi.local:/home/pi/BudgetExperiment/
+curl -O https://raw.githubusercontent.com/becauseimclever/BudgetExperiment/main/docker-compose.pi.yml
 
 
 
@@ -614,7 +614,7 @@ docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_GITHUB_TOKEN      cpus: '2'
 
 # Verify you can pull the image    reservations:
 
-docker pull ghcr.io/fortinbra/budgetexpirement:latest      cpus: '0.25'
+docker pull ghcr.io/becauseimclever/budgetexperiment:latest
 
 ```      memory: 128M
 

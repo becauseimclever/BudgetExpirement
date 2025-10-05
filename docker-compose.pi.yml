@@ -14,7 +14,7 @@
 
 services:
   budgetexperiment:
-    image: ghcr.io/fortinbra/budgetexpirement:latest
+    image: ghcr.io/becauseimclever/budgetexperiment:latest
     container_name: budgetexperiment
     ports:
       - "5099:8080"

@@ -78,7 +78,7 @@ sudo reboot
 
 # Download docker-compose file```
 
-wget https://raw.githubusercontent.com/Fortinbra/BudgetExpirement/main/docker-compose.pi.yml
+wget https://raw.githubusercontent.com/becauseimclever/BudgetExperiment/main/docker-compose.pi.yml
 
 ```After reboot, verify:
 
