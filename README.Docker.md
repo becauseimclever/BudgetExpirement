@@ -363,7 +363,7 @@ Access locally at: `http://localhost:5099`
 
 Store your connection string in user secrets (never in code):
 
-# Run the deployment (builds and deploys)
+# Deploy the application (using pre-built image)
 
 ```powershell
 
