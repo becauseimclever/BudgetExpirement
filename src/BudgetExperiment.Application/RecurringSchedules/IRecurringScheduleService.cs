@@ -153,4 +153,13 @@ public interface IRecurringScheduleService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if deleted, false if not found.</returns>
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    // Autocomplete support methods
+
+    /// <summary>Get distinct schedule names/descriptions for autocomplete.</summary>
+    /// <param name="searchTerm">Optional search term to filter names (case-insensitive prefix match).</param>
+    /// <param name="maxResults">Maximum number of results to return (default: 10, max: 50).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of distinct names matching the search criteria.</returns>
+    Task<IReadOnlyList<string>> GetDistinctDescriptionsAsync(string? searchTerm = null, int maxResults = 10, CancellationToken cancellationToken = default);
 }

@@ -80,4 +80,13 @@ public interface IAdhocTransactionService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if deleted, false if not found.</returns>
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    // Autocomplete support methods
+
+    /// <summary>Get distinct transaction descriptions for autocomplete.</summary>
+    /// <param name="searchTerm">Optional search term to filter descriptions (case-insensitive prefix match).</param>
+    /// <param name="maxResults">Maximum number of results to return (default: 10, max: 50).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of distinct descriptions matching the search criteria.</returns>
+    Task<IReadOnlyList<string>> GetDistinctDescriptionsAsync(string? searchTerm = null, int maxResults = 10, CancellationToken cancellationToken = default);
 }

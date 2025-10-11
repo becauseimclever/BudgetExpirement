@@ -138,6 +138,25 @@ public sealed class AdhocTransactionService : IAdhocTransactionService
         return true;
     }
 
+    // Autocomplete support methods
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetDistinctDescriptionsAsync(string? searchTerm = null, int maxResults = 10, CancellationToken cancellationToken = default)
+    {
+        // Enforce max limit
+        if (maxResults > 50)
+        {
+            maxResults = 50;
+        }
+
+        if (maxResults < 1)
+        {
+            maxResults = 10;
+        }
+
+        return await this._readRepository.GetDistinctDescriptionsAsync(searchTerm, maxResults, cancellationToken).ConfigureAwait(false);
+    }
+
     private static AdhocTransactionResponse ToResponse(AdhocTransaction transaction)
     {
         return new AdhocTransactionResponse(
