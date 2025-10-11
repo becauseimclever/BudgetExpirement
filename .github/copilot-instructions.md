@@ -33,9 +33,7 @@ Tests under `tests/` mirroring structure:
 - ASP.NET Core API
 - EF Core + Npgsql (PostgreSQL)
 - xUnit (unit tests) + Shouldly OR built-in Assert (NO FluentAssertions, NO AutoFixture)
-- Bogus (optional) only if lightweight test data required (avoid over-randomization)
 - Mapping: manual or source generators (avoid AutoMapper until justified)
-- Validation: FluentValidation (if adopted) OR minimal custom validation; keep consistent.
 
 ## 5. Naming & Conventions
 - C# Style: PascalCase types/members (except local variables & private fields). Private fields: `_camelCase`.
@@ -235,6 +233,6 @@ Keep this file lean—prune when obsolete. Update when architectural decisions s
 - **Dockerfile**: Multi-stage build (`Dockerfile`) - builds from source, no pre-build required.
 - **Deployment**: Raspberry Pi uses `docker-compose.pi.yml` to pull and run images from ghcr.io.
 - **Database Connection**: Passed via environment variable `ConnectionStrings__AppDb` from `.env` file (never committed).
-- **Legacy Scripts**: Local build scripts (`build-docker-windows.ps1`, `deploy-to-pi.ps1`, etc.) moved to `legacy-scripts/` and deprecated.
+- **Legacy Scripts**: All legacy local build/deploy scripts (e.g., `build-docker-windows.ps1`, `deploy-to-pi.ps1`, `deploy.sh`) have been removed from the repository. Do not add or reference local Docker scripts. Use CI/CD-built images and deploy by pulling with `docker compose` on the target device.
 - **Documentation**: See `README.Docker.md` for deployment guide, `DEPLOY-QUICKSTART.md` for quick Pi setup.
 - **Important**: Do NOT create or suggest local Docker build workflows. Direct users to CI/CD pipeline or standard .NET local development.
