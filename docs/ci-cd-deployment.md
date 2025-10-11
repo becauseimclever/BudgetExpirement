@@ -254,17 +254,9 @@ docs/
   ci-cd-deployment.md          # This file - architecture overview
 ```
 
-### Deprecated Files (in legacy-scripts/)
-```
-legacy-scripts/
-  build-docker-windows.ps1     # Old: Local Windows build
-  deploy-to-pi.ps1             # Old: SCP-based deployment
-  deploy.ps1                   # Old: Windows deployment
-  deploy.sh                    # Old: Linux deployment
-  load-and-deploy.sh           # Old: Pi-side load script
-  docker-compose.old.yml       # Old: Local build config
-  README.md                    # Explains why these are deprecated
-```
+### Deprecated Files
+
+All legacy local build/deploy scripts have been removed from the repository to avoid confusion. Use CI/CD-built images and pull-based deployments only.
 
 ## Security Considerations
 

@@ -76,7 +76,7 @@ The workflow creates multiple tags:```powershell
 
 - `latest` - Latest from main branch# From the project root directory
 
-- `main` - Same as latest.\build-docker-windows.ps1
+- `main` - Same as latest
 
 - `v1.0.0` - Semantic version tags```
 
@@ -100,7 +100,7 @@ The workflow creates multiple tags:```powershell
 
 2. **Docker and Docker Compose installed** on the Pi# Replace with your Raspberry Pi's hostname/IP and username
 
-3. **PostgreSQL database** (running separately, not in container).\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
+3. **PostgreSQL database** (running separately, not in container)
 
 4. **GitHub Personal Access Token** with `read:packages` scope```
 
@@ -192,7 +192,7 @@ cd ~/BudgetExperimentIf you prefer to run each step manually:
 
 ### Step 4: Download Deployment Files# Step 1: Build image
 
-.\build-docker-windows.ps1
+ 
 
 Download `docker-compose.pi.yml` from the repository:
 
@@ -218,9 +218,9 @@ curl -O https://raw.githubusercontent.com/becauseimclever/BudgetExperiment/main/
 
 scp c:\ws\BudgetExpirement\docker-compose.pi.yml pi@raspberry-pi.local:~/BudgetExperiment/cd ~/BudgetExperiment
 
-```chmod +x load-and-deploy.sh
+```
 
-./load-and-deploy.sh
+
 
 ### Step 5: Create Environment File```
 
@@ -340,13 +340,13 @@ Once deployed, access the application at:
 
 # Make the script executable
 
-```powershellchmod +x deploy.sh
+```powershell
 
 # From the repository root
 
 dotnet run --project c:\ws\BudgetExpirement\src\BudgetExperiment.Api\BudgetExperiment.Api.csproj# Run the deployment
 
-```./deploy.sh
+```
 
 #### Building from source on the Pi
 
@@ -360,13 +360,13 @@ Access locally at: `http://localhost:5099`
 
 ### Local Database Configuration# Make the script executable
 
-chmod +x deploy.sh
+
 
 Store your connection string in user secrets (never in code):
 
 # Run the deployment (builds and deploys)
 
-```powershell./deploy.sh
+```powershell
 
 # Set connection string```
 
@@ -510,7 +510,7 @@ docker compose -f docker-compose.pi.yml logs -fdocker-compose up -d
 
 ```bash
 
-```bash./deploy.sh
+```bash
 
 # Follow logs in real-time```
 
@@ -908,40 +908,21 @@ docker compose -f docker-compose.pi.yml pull## Summary of Windows-to-Pi Deployme
 
 docker compose -f docker-compose.pi.yml up -d
 
-```### Quick Reference
+### Quick Reference
 
+**View logs:**
 
-
-**View logs:****Complete deployment (recommended):**
-
-```bash```powershell
-
-docker compose -f docker-compose.pi.yml logs -f# On Windows - builds, transfers, and deploys in one command
-
-```.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
-
+```bash
+docker compose -f docker-compose.pi.yml logs -f
 ```
 
 **Access application:**
 
-- `http://raspberry-pi-ip:5099` - Web UI**Individual steps:**
-
-- `http://raspberry-pi-ip:5099/scalar` - API Documentation```powershell
-
-# Step 1: Build on Windows
-.\build-docker-windows.ps1
-
-# Step 2: Transfer and deploy
-.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
-```
-
-**Files created:**
-- `build-docker-windows.ps1` - Builds ARM64 Docker image on Windows
-- `deploy-to-pi.ps1` - Complete deployment automation (build + transfer + deploy)
-- `load-and-deploy.sh` - Runs on Pi to load image and start containers
+- `http://raspberry-pi-ip:5099` - Web UI
+- `http://raspberry-pi-ip:5099/scalar` - API Documentation
 
 **Prerequisites checklist:**
-- [ ] Docker Desktop installed on Windows with buildx enabled
+- [ ] Docker and Docker Compose installed on Raspberry Pi
 - [ ] SSH access to Raspberry Pi configured
 - [ ] Database connection string ready
 - [ ] `.env` file created on Raspberry Pi with `DB_CONNECTION_STRING`

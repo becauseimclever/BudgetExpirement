@@ -37,8 +37,7 @@ docs/
 **/*.Tests/
 
 # Deployment scripts
-deploy.ps1
-deploy.sh
+ 
 docker-compose.yml
 docker-compose.*.yml
 

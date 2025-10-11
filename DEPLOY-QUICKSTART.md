@@ -166,35 +166,21 @@ Open a browser and navigate to:# Test passwordless login
 
 
 
-## Common Commands### Option 1: One-Command Deployment (Easiest)
+## Common Commands
 
-
-
-```bashFrom your Windows machine, in the project root directory:
-
+```bash
 # View logs
+docker compose -f docker-compose.pi.yml logs -f
 
-docker compose -f docker-compose.pi.yml logs -f```powershell
+# Stop application
+docker compose -f docker-compose.pi.yml stop
 
-# Replace 'raspberry-pi.local' with your Pi's hostname or IP address
+# Start application
+docker compose -f docker-compose.pi.yml start
 
-# Stop application.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
-
-docker compose -f docker-compose.pi.yml stop```
-
-
-
-# Start applicationThis single command will:
-
-docker compose -f docker-compose.pi.yml start1. ✅ Run all unit tests
-
-2. ✅ Build the application for ARM64
-
-# Update to latest version3. ✅ Create a Docker image
-
-docker compose -f docker-compose.pi.yml pull4. ✅ Transfer everything to your Pi
-
-docker compose -f docker-compose.pi.yml up -d5. ✅ Deploy and start the application
+# Update to latest image and redeploy
+docker compose -f docker-compose.pi.yml pull
+docker compose -f docker-compose.pi.yml up -d
 
 
 
@@ -206,29 +192,14 @@ docker compose -f docker-compose.pi.yml ps
 
 
 
-## Updating the Application#### Step 1: Build on Windows
+## Updating the Application
 
-```powershell
-
-When new versions are released:.\build-docker-windows.ps1
-
-```
+When new versions are released:
 
 ```bash
-
-cd ~/BudgetExperimentThis will:
-
-docker compose -f docker-compose.pi.yml pull- Run tests
-
-docker compose -f docker-compose.pi.yml up -d- Build the Docker image for ARM64
-
-```
-
-#### Step 2: Deploy to Pi
-
-That's it! The new image will be downloaded and deployed automatically.```powershell
-
-.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
+cd ~/BudgetExperiment
+docker compose -f docker-compose.pi.yml pull
+docker compose -f docker-compose.pi.yml up -d
 
 ## Troubleshooting```
 
@@ -358,14 +329,7 @@ docker stats
 
 ## Updating the Application
 
-When you make code changes:
-
-```powershell
-# On Windows, just run the deployment again
-.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
-```
-
-This will rebuild and redeploy automatically.
+When you make code changes and push to main, the CI/CD pipeline builds new images. On the Pi, pull and restart using the commands above.
 
 ## Accessing the Application
 
@@ -390,11 +354,8 @@ Replace `raspberry-pi.local` with your Pi's IP address if hostname doesn't work.
 └─────────────────┘         └──────────────────┘         └─────────────┘
 ```
 
-## Files Created
+## Files
 
-- `build-docker-windows.ps1` - Builds ARM64 Docker image on Windows
-- `deploy-to-pi.ps1` - Complete deployment script (build + transfer + deploy)
-- `load-and-deploy.sh` - Runs on Pi to load and start containers
 - `README.Docker.md` - Detailed Docker documentation
 - `DEPLOY-QUICKSTART.md` - This file
 

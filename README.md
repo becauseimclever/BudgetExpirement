@@ -100,19 +100,13 @@ Run all tests:
 dotnet test
 ```
 
-## 🐳 Docker Deployment
+## 🐳 Deployment (Docker)
 
-### Deploy to Raspberry Pi from Windows
+For Raspberry Pi or server deployment, use pre-built images from CI/CD as documented in:
+- [DEPLOY-QUICKSTART.md](DEPLOY-QUICKSTART.md)
+- [README.Docker.md](README.Docker.md)
 
-For deploying to a Raspberry Pi, see the **[Quick Start Guide](DEPLOY-QUICKSTART.md)**.
-
-**TL;DR:**
-```powershell
-# One command to build, transfer, and deploy to Raspberry Pi
-.\deploy-to-pi.ps1 -PiHost raspberry-pi.local -PiUser pi
-```
-
-For detailed Docker documentation, see **[README.Docker.md](README.Docker.md)**.
+Note: Local Docker build scripts have been removed. Follow the guides above to pull images from GitHub Container Registry and run with `docker compose` on the target device.
 
 
 Run tests for a specific project:
