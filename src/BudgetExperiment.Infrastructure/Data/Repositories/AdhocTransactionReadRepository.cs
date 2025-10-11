@@ -110,4 +110,24 @@ public sealed class AdhocTransactionReadRepository : IAdhocTransactionReadReposi
             .CountAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetDistinctDescriptionsAsync(string? searchTerm = null, int maxResults = 10, CancellationToken cancellationToken = default)
+    {
+        var query = this._context.AdhocTransactions
+            .Select(t => t.Description)
+            .Distinct();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            // PostgreSQL case-insensitive prefix match using ILIKE
+            query = query.Where(d => EF.Functions.ILike(d, $"{searchTerm}%"));
+        }
+
+        return await query
+            .OrderBy(d => d)
+            .Take(maxResults)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
 }

@@ -90,4 +90,26 @@ public sealed class RecurringScheduleReadRepository : IRecurringScheduleReadRepo
 
         return (items, totalCount);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetDistinctDescriptionsAsync(string? searchTerm = null, int maxResults = 10, CancellationToken cancellationToken = default)
+    {
+        // Filter out null/empty names and select distinct
+        var query = this._db.RecurringSchedules
+            .Where(s => s.Name != null && s.Name != string.Empty)
+            .Select(s => s.Name!)
+            .Distinct();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            // PostgreSQL case-insensitive prefix match using ILIKE
+            query = query.Where(n => EF.Functions.ILike(n, $"{searchTerm}%"));
+        }
+
+        return await query
+            .OrderBy(n => n)
+            .Take(maxResults)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
 }
