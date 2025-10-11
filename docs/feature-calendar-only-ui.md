@@ -2,7 +2,7 @@
 
 **Created**: 2025-10-10  
 **Branch**: `feature/calendar-only-ui`  
-**Status**: In Progress (Phase 1 Complete)
+**Status**: In Progress (Phase 2 Complete, Moving to Phase 3)
 
 ## Overview
 Simplify the Blazor WebAssembly client UI by removing the Fast Entry page and left-hand navigation menu, leaving only the calendar display as the primary (and only) view.
@@ -67,22 +67,26 @@ Simplify the Blazor WebAssembly client UI by removing the Fast Entry page and le
 
 **Commit**: `55717d9` - "refactor(client): Remove Fast Entry page (Phase 1)"
 
-### Phase 2: Remove Navigation Menu
-1. **Delete NavMenu component**
-   - Delete `Layout/NavMenu.razor`
+### Phase 2: Remove Navigation Menu ✅ COMPLETED
+1. **Delete NavMenu component** ✅
+   - Deleted `Layout/NavMenu.razor`
+   - Deleted `Layout/NavMenu.razor.css` (scoped styles)
 
-2. **Simplify MainLayout**
-   - Remove navigation toggle button from header
-   - Remove left navigation container
-   - Remove collapse state management (`navCollapsed`)
-   - Remove navigation transition styles
-   - Update body content to full-width (no left margin)
-   - Keep header with app title (static, no toggle)
+2. **Simplify MainLayout** ✅
+   - Removed navigation toggle button from header
+   - Removed left navigation container
+   - Removed collapse state management (`navCollapsed`, `ToggleNavigation()`, `GetNavStyle()`)
+   - Removed navigation transition styles
+   - Updated body content to full-width
+   - Centered header with app title (static, no toggle)
+   - Reduced from 56 lines to 15 lines
 
-3. **Update styles**
-   - Remove `.nav-container` styles
-   - Remove transition animations
-   - Simplify layout to single-column
+3. **Update styles** ✅
+   - Removed `.nav-container` styles
+   - Removed transition animations
+   - Clean, minimal single-column layout
+
+**Commit**: `20e3dbc` - "refactor(client): Simplify MainLayout to single-column, remove navigation (Phase 2)"
 
 ### Phase 3: Cleanup & Verification
 1. **Verify routing**
