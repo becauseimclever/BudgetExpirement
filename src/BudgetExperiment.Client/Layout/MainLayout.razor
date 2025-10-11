@@ -3,53 +3,14 @@
 
 <FluentLayout>
     <FluentHeader>
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween">
-            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-                <FluentButton Appearance="Appearance.Stealth" 
-                              OnClick="ToggleNavigation"
-                              Style="margin-right: 8px; font-size: 16px; min-width: 32px; height: 32px; padding: 0;"
-                              Title="@(navCollapsed ? "Expand navigation" : "Collapse navigation")">
-                    @(navCollapsed ? "▶" : "◀")
-                </FluentButton>
-                <FluentLabel Typo="Typography.PageTitle">Budget Experiment</FluentLabel>
-            </FluentStack>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+            <FluentLabel Typo="Typography.PageTitle">Budget Experiment</FluentLabel>
         </FluentStack>
     </FluentHeader>
     
     <FluentBodyContent>
-        <FluentStack Orientation="Orientation.Horizontal" Width="100%">
-            <div style="@GetNavStyle()" class="nav-container">
-                <NavMenu IsCollapsed="@navCollapsed" />
-            </div>
-            
-            <div style="flex: 1; padding: 16px; background-color: #faf9f8; transition: margin-left 0.3s ease;">
-                @Body
-            </div>
-        </FluentStack>
+        <div style="padding: 16px; background-color: #faf9f8; min-height: 100vh;">
+            @Body
+        </div>
     </FluentBodyContent>
 </FluentLayout>
-
-<style>
-    .nav-container {
-        background-color: #f3f2f1;
-        border-right: 1px solid #d2d0ce;
-        min-height: 100vh;
-        transition: width 0.3s ease;
-        overflow: hidden;
-    }
-</style>
-
-@code {
-    private bool navCollapsed = false;
-
-    private void ToggleNavigation()
-    {
-        navCollapsed = !navCollapsed;
-    }
-
-    private string GetNavStyle()
-    {
-        var width = navCollapsed ? "60px" : "250px";
-        return $"width: {width}; background-color: #f3f2f1; border-right: 1px solid #d2d0ce; min-height: 100vh; transition: width 0.3s ease; overflow: hidden;";
-    }
-}
