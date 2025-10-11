@@ -295,4 +295,25 @@ public sealed class RecurringSchedulesController : ControllerBase
         var deleted = await this._service.DeleteAsync(id, ct).ConfigureAwait(false);
         return deleted ? this.NoContent() : this.NotFound();
     }
+
+    // Autocomplete support endpoint
+
+    /// <summary>Get distinct schedule names for autocomplete.</summary>
+    /// <param name="search">Optional search term to filter names (case-insensitive prefix match).</param>
+    /// <param name="maxResults">Maximum number of results to return (default: 10, max: 50).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of distinct schedule names.</returns>
+    [HttpGet("descriptions")]
+    [ProducesResponseType(typeof(DescriptionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetDescriptions([FromQuery] string? search, [FromQuery] int maxResults = 10, CancellationToken ct = default)
+    {
+        if (maxResults < 1 || maxResults > 50)
+        {
+            return this.ValidationProblem("maxResults must be between 1 and 50.");
+        }
+
+        var descriptions = await this._service.GetDistinctDescriptionsAsync(search, maxResults, ct).ConfigureAwait(false);
+        return this.Ok(new DescriptionsResponse(descriptions.ToList(), descriptions.Count));
+    }
 }
