@@ -192,7 +192,6 @@ cd ~/BudgetExperimentIf you prefer to run each step manually:
 
 ### Step 4: Download Deployment Files# Step 1: Build image
 
- 
 
 Download `docker-compose.pi.yml` from the repository:
 
